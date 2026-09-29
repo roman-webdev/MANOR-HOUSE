@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>MANOR HOUSE — Admin</title>
+
+    <link
+        rel="stylesheet"
+        href="admin.css"
+    >
+</head>
+
+<body>
+
+    <!-- LOADER -->
+
+    <div
+        class="admin-loader"
+        id="admin-loader"
+    >
+        <div class="admin-loader-content">
+
+            <p class="eyebrow">
+                MANOR HOUSE
+            </p>
+
+            <div class="loader-line"></div>
+
+        </div>
+    </div>
+
+    
+    <!-- LOGIN -->
+
+    <section
+        class="login-screen hidden"
+        id="login-screen"
+    >
+        <form
+            class="login-card"
+            id="login-form"
+        >
+            <p class="eyebrow">
+                MANOR HOUSE
+            </p>
+
+            <h1>
+                Admin
+            </h1>
+
+            <p class="login-description">
+                Введите пароль для доступа
+                к управлению записями.
+            </p>
+
+            <label for="admin-password">
+                Пароль
+            </label>
+
+            <input
+                id="admin-password"
+                type="password"
+                autocomplete="current-password"
+                required
+            >
+
+            <p
+                class="login-message"
+                id="login-message"
+            ></p>
+
+            <button
+                class="login-button"
+                type="submit"
+            >
+                Войти
+            </button>
+
+        </form>
+    </section>
+
+
+    <!-- ADMIN -->
+
+    <div
+        id="admin-panel"
+        class="admin-panel hidden"
+    >
+
+        <header class="admin-header">
+
+            <div class="admin-container">
+
+                <div>
+                    <p class="eyebrow">
+                        MANOR HOUSE
+                    </p>
+
+                    <h1>
+                        Управление записями
+                    </h1>
+                </div>
+
+                <div class="header-actions">
+
+                    <a
+                        href="/"
+                        class="site-link"
+                    >
+                        Открыть сайт
+                    </a>
+
+                    <button
+                        id="logout-button"
+                        class="logout-button"
+                        type="button"
+                    >
+                        Выйти
+                    </button>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <main class="admin-main">
+
+            <div class="admin-container">
+
+                <nav class="crm-nav" aria-label="Разделы CRM">
+                    <button type="button" id="nav-bookings" aria-pressed="true">Записи клиентов</button>
+                    <button type="button" id="nav-clients" aria-pressed="false">Клиенты</button>
+                    <button type="button" id="nav-reminders" aria-pressed="false">Напоминания</button>
+                    <button type="button" id="nav-analytics" aria-pressed="false">Аналитика</button>
+                    <button type="button" id="nav-schedule" aria-pressed="false">Расписание мастеров</button>
+                <button type="button" id="nav-catalog" aria-pressed="false">Услуги и мастера</button>
+                </nav>
+
+                <section id="reminders-panel" class="reminders-panel" hidden aria-labelledby="reminders-title">
+                    <div class="reminders-heading"><div><span class="eyebrow">MANOR HOUSE · СЕРВИС</span>
+                        <h2 id="reminders-title">Напоминания</h2>
+                        <p class="clients-muted">Свяжитесь с клиентом и отметьте результат. Сообщения автоматически не отправляются.</p>
+                    </div><button type="button" id="reminders-refresh">Обновить список</button></div>
+                    <div class="reminders-days" aria-label="Дата визита">
+                        <button type="button" id="reminders-today" aria-pressed="true">Сегодня</button>
+                        <button type="button" id="reminders-tomorrow" aria-pressed="false">Завтра</button>
+                    </div>
+                    <label class="reminders-filter" for="reminders-filter">Состояние
+                        <select id="reminders-filter"><option value="all">Все</option><option value="pending">Не напоминали</option><option value="done">Напомнили</option></select>
+                    </label>
+                    <p class="clients-muted">Даты — по времени сервера. При переносе отметка сбрасывается.</p>
+                    <p id="reminders-message" role="status" aria-live="polite"></p>
+                    <div id="reminders-list" class="reminders-list"></div>
+                </section>
+
+                <section id="analytics-panel" class="analytics-panel" hidden aria-labelledby="analytics-title">
+                    <div class="analytics-heading">
+                        <div><span class="eyebrow">MANOR HOUSE · BUSINESS</span><h2 id="analytics-title">Аналитика</h2><p class="clients-muted">Результаты бизнеса по выполненным визитам</p></div>
+                        <div class="analytics-actions"><label for="analytics-period">Период</label><select id="analytics-period">
+                            <option value="7d">7 дней</option><option value="30d" selected>30 дней</option><option value="month">Текущий месяц</option><option value="previous_month">Прошлый месяц</option><option value="all">Всё время</option>
+                        </select></div>
+                    </div>
+                    <p id="analytics-range" class="clients-muted"></p>
+                    <p id="analytics-message" role="status" aria-live="polite"></p>
+                    <div id="analytics-content" hidden>
+                        <p id="analytics-warnings" class="clients-muted"></p>
+                        <div id="analytics-kpis" class="analytics-kpis"></div>
+                        <p id="analytics-clients-note" class="clients-muted"></p>
+                        <section class="analytics-card"><h3>Динамика выручки и визитов</h3><p class="clients-muted">Золотой — выручка, светлый — визиты. У каждой шкалы свой максимум.</p><div id="analytics-dynamics"></div></section>
+                        <div class="analytics-tables"><section class="analytics-card"><h3>Популярные услуги</h3><div id="analytics-services"></div></section>
+                        <section class="analytics-card"><h3>Результаты мастеров</h3><div id="analytics-barbers"></div></section></div>
+                        <p id="analytics-masters-note" class="clients-muted"></p>
+                        <p class="clients-muted">Названия, цены и длительность сохранены в записи. Отменённые и подтверждённые записи не добавляют выручку. Отмены считаются по дате запланированного визита.</p>
+                    </div>
+                </section>
+
+                <section id="catalog-panel" class="catalog-panel" hidden aria-labelledby="catalog-title">
+                    <p class="eyebrow">MANOR HOUSE · CRM</p>
+                    <h2 id="catalog-title">Услуги и мастера</h2>
+                    <p class="clients-muted">Изменения действуют для новых записей. История визитов сохраняется.</p>
+                    <p id="catalog-message" role="status" aria-live="polite"></p>
+                    <button type="button" id="catalog-refresh">Обновить список</button>
+                    <div class="catalog-columns">
+                        <section><div class="catalog-heading"><h3>Услуги</h3><button type="button" data-catalog-add="services">Добавить услугу</button></div><div id="catalog-services"></div></section>
+                        <section><div class="catalog-heading"><h3>Мастера</h3><button type="button" data-catalog-add="barbers">Добавить мастера</button></div><div id="catalog-barbers"></div></section>
+                    </div>
+                </section>
+                <section id="clients-panel" class="clients-panel" hidden aria-labelledby="clients-title">
+                    <div class="clients-heading">
+                        <div>
+                            <p class="eyebrow">MANOR HOUSE · CRM</p>
+                            <h2 id="clients-title">Клиенты</h2>
+                            <p class="clients-muted">База автоматически собирается из существующих записей по номеру телефона.</p>
+                        </div>
+                        <label class="clients-search">
+                            <span>Поиск</span>
+                            <input id="clients-search" type="search" placeholder="Имя или телефон..." autocomplete="off">
+                        </label>
+                    </div>
+
+                    <section class="client-stats" aria-label="Статистика клиентов">
+                        <article><span>Клиентов</span><strong id="clients-count">0</strong></article>
+                        <article><span>Выполненных визитов</span><strong id="clients-visits">0</strong></article>
+                        <article><span>Отмен</span><strong id="clients-cancelled">0</strong></article>
+                        <article><span>Выручка по визитам</span><strong id="clients-revenue">0 грн</strong></article>
+                    </section>
+
+                    <p id="clients-message" class="clients-message" role="status" aria-live="polite"></p>
+                    <div id="clients-list" class="clients-list"></div>
+                </section>
+                <section id="schedule-panel" class="schedule-panel" hidden aria-labelledby="schedule-title">
+                    <div class="schedule-heading">
+                        <div><p class="eyebrow">MANOR HOUSE · CRM</p><h2 id="schedule-title">Расписание мастеров</h2>
+                        <p class="schedule-muted">Рабочая неделя, особые даты и перерывы.</p></div>
+                        <label>Мастер<select id="schedule-barber" aria-label="Мастер"></select></label>
+                    </div>
+                    <p id="schedule-message" role="status" aria-live="polite"></p>
+                    <button type="button" id="schedule-retry" hidden>Повторить загрузку</button>
+                    <div id="schedule-content" hidden>
+                        <form id="weekly-form" class="schedule-card">
+                            <h3>Постоянный недельный график</h3>
+                            <p class="schedule-muted">Повторяется каждую неделю. Особые даты имеют приоритет.</p>
+                            <div id="weekly-rows"></div>
+                            <button type="submit" class="schedule-primary">Сохранить неделю</button>
+                        </form>
+                        <div class="schedule-grid">
+                            <form id="exception-form" class="schedule-card">
+                                <h3>Исключение на дату</h3>
+                                <label>Дата<input name="date" type="date" required></label>
+                                <label>Режим<select name="mode"><option value="off">Выходной</option><option value="hours">Специальные часы</option></select></label>
+                                <div class="schedule-times" id="exception-times" hidden>
+                                    <label>С<input name="start" type="time" value="10:00" required disabled></label>
+                                    <label>До<input name="end" type="time" value="19:00" required disabled></label>
+                                </div>
+                                <p class="schedule-muted">Повторное сохранение заменяет исключение на эту дату.</p>
+                                <button type="submit" class="schedule-primary">Сохранить исключение</button>
+                            </form>
+                            <form id="block-form" class="schedule-card">
+                                <h3>Заблокировать время</h3>
+                                <label>Дата<input name="date" type="date" required></label>
+                                <div class="schedule-times">
+                                    <label>С<input name="start" type="time" value="14:00" required></label>
+                                    <label>До<input name="end" type="time" value="16:00" required></label>
+                                </div>
+                                <label>Причина <span class="schedule-muted">(необязательно)</span><input name="reason" type="text" maxlength="200" placeholder="Например, перерыв"></label>
+                                <button type="submit" class="schedule-primary">Добавить блокировку</button>
+                            </form>
+                        </div>
+                        <div class="schedule-card">
+                            <h3>Ближайшие изменения</h3>
+                            <p class="schedule-muted">Сегодня и будущие даты. После удаления исключения действует недельный график.</p>
+                            <div id="schedule-events"></div>
+                        </div>
+                        <p class="schedule-muted">Изменения сразу учитываются при выборе свободного времени. Подтверждённые записи защищены: конфликтующее изменение не сохранится.</p>
+                    </div>
+                </section>
+
+                <section class="stats">
+
+                    <article>
+                        <span>Всего</span>
+                        <strong id="total-count">0</strong>
+                    </article>
+
+                    <article>
+                        <span>Подтверждены</span>
+                        <strong id="confirmed-count">0</strong>
+                    </article>
+
+                    <article>
+                        <span>Выполнены</span>
+                        <strong id="completed-count">0</strong>
+                    </article>
+
+                    <article>
+                        <span>Отменены</span>
+                        <strong id="cancelled-count">0</strong>
+                    </article>
+
+                </section>
+
+
+                <section class="admin-controls">
+
+                    <div class="controls-heading">
+
+                        <div>
+                            <p class="eyebrow">
+                                РАСПИСАНИЕ
+                            </p>
+
+                            <h2>
+                                Записи
+                            </h2>
+                        </div>
+
+                        <button class="new-booking-button" id="new-booking-button" type="button">
+                            + Новая запись
+                        </button>
+                        <div class="search-box">
+
+                            <input
+                                id="booking-search"
+                                type="search"
+                                placeholder="Имя или телефон..."
+                                autocomplete="off"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="filter-group">
+
+                        <span class="filter-title">
+                            Период
+                        </span>
+
+                        <div class="filters">
+
+                            <button
+                                class="period-filter active"
+                                data-period="all"
+                                type="button"
+                            >
+                                Все
+                            </button>
+
+                            <button
+                                class="period-filter"
+                                data-period="today"
+                                type="button"
+                            >
+                                Сегодня
+                            </button>
+
+                            <button
+                                class="period-filter"
+                                data-period="tomorrow"
+                                type="button"
+                            >
+                                Завтра
+                            </button>
+
+                            <button
+                                class="period-filter"
+                                data-period="future"
+                                type="button"
+                            >
+                                Будущие
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="filter-group">
+
+                        <span class="filter-title">
+                            Статус
+                        </span>
+
+                        <div class="filters">
+
+                            <button
+                                class="status-filter active"
+                                data-status="all"
+                                type="button"
+                            >
+                                Все
+                            </button>
+
+                            <button
+                                class="status-filter"
+                                data-status="confirmed"
+                                type="button"
+                            >
+                                Подтверждены
+                            </button>
+
+                            <button
+                                class="status-filter"
+                                data-status="completed"
+                                type="button"
+                            >
+                                Выполнены
+                            </button>
+
+                            <button
+                                class="status-filter"
+                                data-status="cancelled"
+                                type="button"
+                            >
+                                Отменены
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <div
+                    id="bookings-list"
+                    class="bookings-list"
+                >
+                    Загрузка записей...
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+
+
+    <dialog id="client-modal" class="client-modal" aria-labelledby="client-modal-title">
+        <div class="client-modal-header">
+            <div>
+                <p class="eyebrow">MANOR HOUSE · CLIENT</p>
+                <h2 id="client-modal-title">Карточка клиента</h2>
+            </div>
+            <button id="client-modal-close" class="modal-close" type="button" aria-label="Закрыть">×</button>
+        </div>
+        <div id="client-modal-body"></div>
+    </dialog>
+
+    <dialog id="booking-modal" class="booking-modal" aria-labelledby="booking-modal-title">
+        <div class="booking-modal-header">
+            <div><p class="eyebrow">MANOR HOUSE</p><h2 id="booking-modal-title">Новая запись</h2></div>
+            <button id="booking-modal-close" class="modal-close" type="button" aria-label="Закрыть">×</button>
+        </div>
+        <form id="admin-booking-form">
+            <fieldset id="admin-booking-fields">
+                <div class="booking-form-grid">
+                    <label>Услуга<select id="admin-service" required></select></label>
+                    <label>Мастер<select id="admin-barber" required></select></label>
+                    <label>Дата<input id="admin-date" type="date" required></label>
+                </div>
+                <p class="field-title">Свободное время</p>
+                <div id="admin-time-slots" class="admin-time-slots" aria-live="polite"></div>
+                <button id="booking-retry" class="booking-retry" type="button" hidden>Повторить загрузку</button>
+                <div class="booking-form-grid booking-client-fields">
+                    <label>Имя клиента<input id="admin-client-name" type="text" minlength="2" maxlength="100" autocomplete="name" required></label>
+                    <label>Телефон<input id="admin-client-phone" type="tel" maxlength="30" autocomplete="tel" placeholder="+380…" required></label>
+                </div>
+            </fieldset>
+            <p id="admin-booking-summary" class="admin-booking-summary"></p>
+            <p id="admin-booking-message" class="admin-booking-message" role="status" aria-live="polite"></p>
+            <button id="create-booking-button" class="create-booking-button" type="submit" disabled>Создать запись</button>
+        </form>
+    </dialog>
+
+    <dialog id="confirmation-modal" class="confirmation-modal" aria-labelledby="confirmation-title" aria-describedby="confirmation-description">
+        <p class="eyebrow">MANOR HOUSE</p>
+        <h2 id="confirmation-title"></h2>
+        <dl id="confirmation-details" class="confirmation-details"></dl>
+        <p id="confirmation-description" class="confirmation-description"></p>
+        <p id="confirmation-message" class="confirmation-message" role="status" aria-live="polite" aria-atomic="true"></p>
+        <div id="confirmation-conflicts" class="confirmation-conflicts" hidden aria-live="polite"></div>
+        <div class="confirmation-actions">
+            <button id="confirmation-back" type="button" autofocus>Назад</button>
+            <button id="confirmation-submit" class="confirmation-submit" type="button"></button>
+        </div>
+    </dialog>
+
+    
+
+<dialog id="catalog-dialog" class="catalog-dialog">
+    <form id="catalog-form">
+        <h2 id="catalog-editor-title">Редактирование</h2>
+        <fieldset id="catalog-fields">
+            <label>Название / имя<input name="name" required maxlength="120" autocomplete="off"></label>
+            <div id="catalog-service-fields">
+                <label>Цена, грн<input name="price" type="number" min="0.01" max="1000000000" step="0.01"></label>
+                <label>Длительность, мин.<input name="duration" type="number" min="15" max="480" step="1"></label>
+            </div>
+            <div id="catalog-barber-fields">
+                <label>Должность<input name="position" maxlength="120"></label>
+                <label>Опыт, лет<input name="experience" type="number" min="0" step="1"></label>
+                <p class="clients-muted">Для нового мастера настройте часы во вкладке «Расписание мастеров».</p>
+            </div>
+            <label class="catalog-active"><input name="active" type="checkbox" checked> Активен — доступен для новых записей</label>
+        </fieldset>
+        <p id="catalog-form-message" role="alert"></p>
+        <div class="catalog-heading"><button type="button" id="catalog-cancel">Отмена</button><button type="submit" id="catalog-submit">Сохранить</button></div>
+    </form>
+</dialog>
+
+<dialog id="crm-comment-modal" class="client-modal crm-comment-modal" aria-labelledby="crm-comment-title">
+    <form id="crm-comment-form" class="crm-editor">
+        <div class="client-modal-header"><div><span class="eyebrow">MANOR HOUSE · ВИЗИТ</span><h2 id="crm-comment-title">Комментарий к записи</h2></div>
+        <button type="button" id="crm-comment-close" aria-label="Закрыть комментарий">×</button></div>
+        <p id="crm-comment-context" class="clients-muted"></p>
+        <label for="crm-comment-text">Пожелания и итоги визита</label>
+        <textarea id="crm-comment-text" maxlength="2000" rows="6" aria-describedby="crm-comment-hint"></textarea>
+        <p id="crm-comment-hint" class="clients-muted">До 2 000 символов. Комментарий относится только к этой записи.</p>
+        <p id="crm-comment-message" class="crm-message" role="status" aria-live="polite"></p>
+        <button id="crm-comment-save" type="submit">Сохранить комментарий</button>
+    </form>
+</dialog>
+<script src="admin.js"></script>
+</body>
+
+</html>

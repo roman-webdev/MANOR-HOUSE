@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="MANOR HOUSE — мужской барбершоп. Стрижки, бритьё и профессиональный уход."
+    >
+
+    <meta
+        name="theme-color"
+        content="#11110f"
+    >
+
+    <title>MANOR HOUSE — Barbershop</title>
+
+    <link rel="stylesheet" href="style.css">
+<noscript><style>.entrance{height:90svh}.entrance-sticky{position:relative;height:90svh}.entrance-frame{clip-path:none}.barber-card{opacity:1;transform:none}.gallery-controls,.menu-button{display:none}@media(max-width:900px){.header{position:relative;background:#0b0b0a}.header-inner{flex-wrap:wrap}.nav{display:flex;position:static;flex-direction:row;flex-wrap:wrap;padding:12px 0;gap:8px}.nav a{font-size:12px;padding:5px}.hero-content{padding-top:60px}}</style></noscript>
+</head>
+
+<body>
+<a class="skip-link" href="#booking">Перейти к записи</a>
+
+    <header class="header">
+        <div class="container header-inner">
+
+            <a class="logo" href="#home">
+                <span class="logo-main">MANOR</span>
+                <span class="logo-small">HOUSE</span>
+            </a>
+
+            <nav class="nav" id="nav">
+                <a href="#services">Услуги</a>
+                <a href="#barbers">Мастера</a>
+                <a href="#about">О нас</a>
+                <a href="#reviews">Отзывы</a>
+                <a href="#contacts">Контакты</a>
+            </nav>
+
+            <a class="header-booking" href="#booking">Записаться</a>
+
+            <button
+                class="menu-button"
+                id="menu-button"
+                type="button"
+                aria-label="Открыть меню" aria-controls="nav" aria-expanded="false"
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+        </div>
+    </header>
+
+
+    <main>
+
+        <!-- HERO -->
+
+        <section class="hero" id="home">
+
+            <div class="hero-image" aria-hidden="true"><img src="images/hero-cinematic.webp" alt="" width="1536" height="1024" loading="eager" fetchpriority="high" decoding="async"></div><div class="hero-overlay"></div><span class="hero-signature" aria-hidden="true">MANOR HOUSE</span>
+
+            <div class="container hero-content">
+
+                <p class="section-label">
+                    BARBERSHOP
+                </p>
+
+                <h1>
+                    МУЖСКАЯ<br>
+                    ЭСТЕТИКА
+                </h1>
+
+                <p class="hero-subtitle">
+                    СТИЛЬ В КАЖДОЙ ДЕТАЛИ
+                </p>
+
+                <p class="hero-text">
+                    Стрижки, бритьё и уход от мастеров,
+                    которые ценят ваше время.
+                </p>
+
+                <div class="hero-actions">
+
+                    <a
+                        class="button button-primary"
+                        href="#booking"
+                    >Записаться</a>
+
+                    <a
+                        class="button button-secondary"
+                        href="#barbers"
+                    >Наши мастера</a>
+
+                </div>
+
+            </div>
+        </section>
+
+
+        <section class="entrance" aria-labelledby="entrance-title"><div class="entrance-sticky"><div class="entrance-copy"><p class="section-label">ПРИГЛАШЕНИЕ ВНУТРЬ</p><h2 id="entrance-title">ENTER<br><em>MANOR HOUSE</em></h2></div><div class="entrance-frame"><img src="images/enter-manor.webp" alt="Вход в тёплый интерьер MANOR HOUSE" width="1024" height="1536" loading="lazy" decoding="async"></div><p class="entrance-caption">Оставьте суету за дверью.</p></div></section>
+<!-- SERVICES -->
+
+        <section class="section services" id="services">
+
+            <div class="container">
+
+                <div class="section-heading">
+
+                    <div>
+                        <p class="section-label">
+                            НАШИ УСЛУГИ
+                        </p>
+
+                        <h2>
+                            Всё, что нужно<br>
+                            современному мужчине
+                        </h2>
+                    </div>
+
+                    <p class="section-description">
+                        Классические техники, современный стиль
+                        и внимание к каждой детали.
+                    </p>
+
+                </div>
+
+
+                <div class="services-grid"><p class="catalog-state" role="status">Загружаем каталог…</p></div>
+
+            </div>
+        </section>
+
+
+        <section class="type-scene" aria-label="Больше, чем стрижка"><div class="type-stage"><p class="section-label">МАСТЕРСТВО В ДЕТАЛЯХ</p><div class="type-lines"><span>MORE THAN</span><span>A <em>HAIRCUT</em></span></div><div class="type-portrait"><div class="craft-photo"><img src="images/haircut-service.webp" alt="Работа машинкой над плавным переходом стрижки" width="1536" height="1024" loading="lazy" decoding="async"></div><div class="craft-photo"><img src="images/beard-service.webp" alt="Точная работа над контуром бороды" width="1536" height="1024" loading="lazy" decoding="async"></div></div><p class="type-caption">Ваш характер.<br>Работа нашего мастера.</p></div></section>
+<!-- BARBERS -->
+
+        <section class="section barbers" id="barbers">
+
+            <div class="container">
+
+                <div class="section-heading">
+
+                    <div>
+                        <p class="section-label">
+                            КОМАНДА
+                        </p>
+
+                        <h2>
+                            Наши мастера
+                        </h2>
+                    </div>
+
+                    <p class="section-description">
+                        Каждый мастер MANOR HOUSE имеет
+                        собственный стиль и многолетний опыт.
+                    </p>
+
+                </div>
+
+
+                <div class="gallery-controls"><button type="button" id="master-prev" aria-label="Предыдущий мастер"><span class="nav-arrow" aria-hidden="true">←</span></button><p id="master-position" aria-live="polite">— / —</p><button type="button" id="master-next" aria-label="Следующий мастер"><span class="nav-arrow" aria-hidden="true">→</span></button></div><div class="barbers-grid" aria-label="Галерея мастеров"><p class="catalog-state" role="status">Загружаем каталог…</p></div>
+
+            </div>
+        </section>
+
+
+        <!-- ABOUT -->
+
+        <section class="section about" id="about">
+
+            <div class="container about-grid">
+
+                <div class="atmosphere-photo"><div class="atmosphere-detail"><img src="images/interior-secondary.webp" alt="Зона отдыха и стойка MANOR HOUSE" width="1536" height="1024" loading="lazy" decoding="async"></div><div class="atmosphere-detail"><img src="images/tools-detail.webp" alt="Инструменты барбера на чёрном мраморе" width="1536" height="1024" loading="lazy" decoding="async"></div><span>THE ART OF SLOWING DOWN</span></div><div class="about-number">
+                    08
+                    <span>лет создаём стиль</span>
+                </div>
+
+
+                <div class="about-content">
+
+                    <p class="section-label">
+                        О MANOR HOUSE
+                    </p>
+
+                    <h2>
+                        Здесь ценят стиль,<br>
+                        качество и время
+                    </h2>
+
+                    <p>
+                        MANOR HOUSE — это пространство,
+                        где классические традиции барберинга
+                        встречаются с современным подходом.
+                    </p>
+
+                    <p>
+                        Мы не работаем на скорость.
+                        Мы создаём образ, который подходит
+                        именно вам.
+                    </p>
+
+                    <a
+                        class="text-link"
+                        href="#booking"
+                    >Записаться на визит</a>
+
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- REVIEWS -->
+
+        <section class="section reviews" id="reviews" aria-labelledby="reviews-title">
+
+            <div class="container">
+
+                <div class="section-heading">
+
+                    <div>
+                        <p class="section-label">
+                            ОТЗЫВЫ
+                        </p>
+
+                        <h2 id="reviews-title">
+                            Впечатления о визите
+                        </h2>
+                    </div>
+
+                </div>
+
+
+                <p class="review-note">Тексты из исходной версии сайта. Подлинность отзывов не подтверждена.</p><div class="reviews-grid" id="reviews-slides" aria-live="polite" aria-atomic="true">
+
+                    <article class="review-card">
+
+                        <div class="review-quote" aria-hidden="true">“</div>
+
+                        <p>
+                            Отличное место. Мастер сразу понял,
+                            какую стрижку я хочу. Результат
+                            превзошёл ожидания.
+                        </p>
+
+                        <strong>Андрей</strong>
+
+                    </article>
+
+
+                    <article class="review-card">
+
+                        <div class="review-quote" aria-hidden="true">“</div>
+
+                        <p>
+                            Атмосфера, сервис и качество
+                            на отличном уровне. Теперь только
+                            сюда.
+                        </p>
+
+                        <strong>Михаил</strong>
+
+                    </article>
+
+
+                    <article class="review-card">
+
+                        <div class="review-quote" aria-hidden="true">“</div>
+
+                        <p>
+                            Записался на стрижку и бороду.
+                            Всё чётко по времени, мастер
+                            настоящий профессионал.
+                        </p>
+
+                        <strong>Дмитрий</strong>
+
+                    </article>
+
+                </div>
+
+
+                <div class="reviews-controls" hidden>
+                    <p class="reviews-position" aria-label="Отзыв 1 из 3"><span data-review-current>01</span><span aria-hidden="true">/</span><span>03</span></p>
+                    <div class="reviews-buttons">
+                        <button type="button" class="review-prev" aria-label="Предыдущий отзыв" aria-controls="reviews-slides"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5m7-7-7 7 7 7"/></svg></button>
+                        <button type="button" class="review-next" aria-label="Следующий отзыв" aria-controls="reviews-slides"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BOOKING -->
+
+        <section class="section booking" id="booking">
+
+            <div class="container">
+
+                <div class="booking-header">
+                    <p class="section-label">ОНЛАЙН-ЗАПИСЬ</p>
+
+                    <h2>
+                        Запишитесь в<br>
+                        MANOR HOUSE
+                    </h2>
+
+                    <p>
+                        Выберите услугу, мастера и удобное время.
+                        Подтверждение займёт меньше минуты.
+                    </p>
+                </div>
+
+
+                <div class="booking-panel">
+
+                    <div class="booking-progress" role="list" aria-label="Этапы записи">
+                        <div class="progress-item active" role="listitem" data-progress="1">
+                            <span>01</span>
+                            <p>Услуга</p>
+                        </div>
+
+                        <div class="progress-item" role="listitem" data-progress="2">
+                            <span>02</span>
+                            <p>Мастер</p>
+                        </div>
+
+                        <div class="progress-item" role="listitem" data-progress="3">
+                            <span>03</span>
+                            <p>Дата</p>
+                        </div>
+
+                        <div class="progress-item" role="listitem" data-progress="4">
+                            <span>04</span>
+                            <p>Время</p>
+                        </div>
+
+                        <div class="progress-item" role="listitem" data-progress="5">
+                            <span>05</span>
+                            <p>Контакты</p>
+                        </div>
+                    </div>
+
+
+                    <p id="catalog-notice" class="catalog-notice" role="status"></p><button type="button" id="catalog-retry" hidden>Повторить загрузку каталога</button><p id="preferred-master" class="preferred-master" role="status"></p><noscript><p>Для онлайн-записи включите JavaScript в браузере.</p></noscript><div class="booking-layout"><form id="booking-form">
+
+                        <!-- STEP 1 -->
+
+                        <div class="booking-step active" data-step="1">
+
+                            <div class="step-title">
+                                <span>01</span>
+
+                                <div>
+                                    <h3>Выберите услугу</h3>
+                                    <p>Что будем делать?</p>
+                                </div>
+                            </div>
+
+                            <div class="booking-options services-options"><p class="catalog-state" role="status">Загружаем каталог…</p></div>
+
+                        </div>
+
+
+                        <!-- STEP 2 -->
+
+                        <div class="booking-step" data-step="2">
+
+                            <div class="step-title">
+                                <span>02</span>
+
+                                <div>
+                                    <h3>Выберите мастера</h3>
+                                    <p>К кому хотите записаться?</p>
+                                </div>
+                            </div>
+
+                            <div class="booking-options masters-options"><p class="catalog-state" role="status">Загружаем каталог…</p></div>
+
+                        </div>
+
+
+                        <!-- STEP 3 -->
+
+                        <div class="booking-step" data-step="3">
+
+                            <div class="step-title">
+                                <span>03</span>
+
+                                <div>
+                                    <h3>Выберите дату</h3>
+                                    <p>Выберите день — запись на 30 дней вперёд.</p>
+                                </div>
+                            </div>
+
+                            <div class="dates-navigation" aria-label="Навигация по датам">
+                                <button id="dates-previous" class="dates-arrow" type="button" aria-label="Предыдущие 7 дней" disabled><span class="nav-arrow" aria-hidden="true">←</span></button>
+                                <p id="dates-period" aria-live="polite"></p>
+                                <button id="dates-next" class="dates-arrow" type="button" aria-label="Следующие 7 дней" disabled><span class="nav-arrow" aria-hidden="true">→</span></button>
+                            </div>
+                            <p id="dates-status" class="dates-status" role="status"></p>
+                            <button id="dates-retry" class="dates-arrow" type="button" hidden>Повторить</button>
+                            <div
+                                class="dates-grid"
+                                id="dates-grid"
+                            ></div>
+
+                        </div>
+
+
+                        <!-- STEP 4 -->
+
+                        <div class="booking-step" data-step="4">
+
+                            <div class="step-title">
+                                <span>04</span>
+
+                                <div>
+                                    <h3>Выберите время</h3>
+                                    <p>Доступно только свободное время мастера.</p>
+                                </div>
+                            </div>
+
+                            <div
+                                class="times-grid"
+                                id="times-grid" aria-live="polite"
+                            ></div>
+
+                        </div>
+
+
+                        <!-- STEP 5 -->
+
+                        <div class="booking-step" data-step="5">
+
+                            <div class="step-title">
+                                <span>05</span>
+
+                                <div>
+                                    <h3>Ваши данные</h3>
+                                    <p>Остался последний шаг.</p>
+                                </div>
+                            </div>
+
+
+                            <div class="client-fields">
+
+                                <label>
+                                    Имя
+
+                                    <input
+                                        id="booking-name"
+                                        type="text"
+                                        maxlength="50"
+                                        autocomplete="name"
+                                        placeholder="Ваше имя"
+                                        required
+                                    >
+                                </label>
+
+
+                                <label>
+                                    Телефон
+
+                                    <input
+                                        id="booking-phone"
+                                        type="tel"
+                                        maxlength="25"
+                                        autocomplete="tel"
+                                        placeholder="+380 99 123 45 67"
+                                        required
+                                    >
+                                </label>
+
+                            </div>
+
+
+                            
+
+
+                            <p
+                                class="booking-message"
+                                id="booking-message" role="status" aria-live="polite"
+                            ></p>
+
+
+                            <button
+                                class="confirm-booking"
+                                type="submit"
+                            >
+                                Подтвердить запись
+                            </button>
+
+                        </div>
+
+
+                        <button
+                            class="booking-back"
+                            id="booking-back"
+                            type="button"
+                        >
+                            Назад
+                        </button>
+
+                    </form><aside class="booking-summary" aria-labelledby="visit-title"><h3 id="visit-title">ВАШ ВИЗИТ</h3><div aria-live="polite" aria-atomic="true">
+
+                                <p>
+                                    <span>Услуга</span>
+                                    <strong id="summary-service">—</strong>
+                                </p>
+
+                                <p>
+                                    <span>Мастер</span>
+                                    <strong id="summary-master">—</strong>
+                                </p>
+
+                                <p>
+                                    <span>Дата</span>
+                                    <strong id="summary-date">—</strong>
+                                </p>
+
+                                <p>
+                                    <span>Время</span>
+                                    <strong id="summary-time">—</strong>
+                                </p>
+
+                                <p>
+                                    <span>Стоимость</span>
+                                    <strong id="summary-price">—</strong>
+                                </p>
+
+                            <p><span>Длительность</span><strong id="summary-duration">—</strong></p></div></aside></div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- CONTACTS -->
+
+        <section class="section contacts" id="contacts">
+
+            <div class="container final-invitation"><p class="section-label">ВАШ СЛЕДУЮЩИЙ ВИЗИТ</p><h2>Время для<br><em>себя.</em></h2><a class="button button-primary" href="#booking">Выбрать время</a><p class="contact-note">Контакты из исходного сайта требуют уточнения перед публикацией.</p></div><div class="container contacts-grid">
+
+                <div>
+
+                    <p class="section-label">
+                        КОНТАКТЫ
+                    </p>
+
+                    <h2>
+                        MANOR HOUSE
+                    </h2>
+
+                </div>
+
+
+                <div class="contact-item">
+                    <span>Адрес</span>
+                    <strong>
+                        ул. Примерная, 24
+                    </strong>
+                </div>
+
+
+                <div class="contact-item">
+                    <span>Телефон</span>
+                    <strong>
+                        +380 99 123 45 67
+                    </strong>
+                </div>
+
+
+                <div class="contact-item">
+                    <span>График</span>
+                    <strong>
+                        Ежедневно<br>
+                        10:00 — 21:00
+                    </strong>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <footer class="footer">
+
+        <div class="container footer-inner">
+
+            <a class="logo" href="#home">
+                <span class="logo-main">MANOR</span>
+                <span class="logo-small">HOUSE</span>
+            </a>
+
+            <p>
+                © 2026 MANOR HOUSE
+            </p>
+
+        </div>
+
+    </footer>
+
+
+    <script src="script.js"></script>
+
+</body>
+</html>
