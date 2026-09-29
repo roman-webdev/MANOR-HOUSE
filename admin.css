@@ -831,3 +831,24 @@ h1 {
     .reminder-state { align-items: stretch; }
     .reminder-card { padding: 16px; gap: 18px; }
 }
+
+
+/* CLIENT ARCHIVE */
+.clients-view-switch { display:flex; gap:10px; margin:-8px 0 24px; }
+.clients-view-switch button { padding:10px 16px; border:1px solid #514635; background:transparent; color:#bdb5a8; font:inherit; cursor:pointer; }
+.clients-view-switch button[aria-pressed="true"] { border-color:#d6b277; background:#d6b277; color:#11110f; }
+.clients-view-switch button:focus-visible,.client-archive-action:focus-visible { outline:2px solid #e7c994; outline-offset:3px; }
+.client-row-archived { border-color:#3b3730; background:#151512; }
+.client-archive-badge { display:inline-block; margin-top:8px; padding:4px 8px; border:1px solid #514635; color:#aaa49a; font-size:10px; letter-spacing:1px; text-transform:uppercase; }
+.client-archive-state { margin-top:10px !important; }
+.client-profile-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+.client-profile-actions .new-booking-button { margin-left:0; }
+.client-archive-action { padding:11px 15px; border:1px solid #6b5738; background:transparent; color:#d6b277; font:inherit; cursor:pointer; }
+.client-archive-action:hover { background:#241f18; }
+.client-archive-action:disabled { opacity:.5; cursor:wait; }
+@media(max-width:600px) {
+    .clients-view-switch { width:100%; }
+    .clients-view-switch button { flex:1; }
+    .client-profile-actions { flex-direction:column; }
+    .client-profile-actions button { width:100%; }
+}

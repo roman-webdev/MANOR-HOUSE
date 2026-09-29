@@ -1,9 +1,28 @@
 import os
+import re
 import sqlite3
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
+try:
+    import psycopg
+    from psycopg import IntegrityError as PostgresIntegrityError
+    from psycopg import OperationalError as PostgresOperationalError
+    from psycopg.rows import dict_row
+except ImportError:  # SQLite fallback still works without psycopg installed.
+    psycopg = None
+    PostgresIntegrityError = ()
+    PostgresOperationalError = ()
+    dict_row = None
+
+
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+USING_POSTGRES = bool(DATABASE_URL)
 
 DEFAULT_DATABASE_PATH = Path(__file__).with_name("manor_house.db")
 DATABASE_PATH = Path(
@@ -16,6 +35,23 @@ BUSINESS_TIMEZONE = os.getenv(
 )
 BUSINESS_TZ = ZoneInfo(BUSINESS_TIMEZONE)
 
+DB_OPERATIONAL_ERRORS = (
+    (sqlite3.OperationalError, PostgresOperationalError)
+    if PostgresOperationalError
+    else (sqlite3.OperationalError,)
+)
+DB_INTEGRITY_ERRORS = (
+    (sqlite3.IntegrityError, PostgresIntegrityError)
+    if PostgresIntegrityError
+    else (sqlite3.IntegrityError,)
+)
+
+# PostgreSQL uses an application-level advisory lock for every transaction that
+# used BEGIN IMMEDIATE in SQLite. This preserves the project's atomic booking /
+# schedule / catalog behaviour and prevents two concurrent requests from
+# reserving the same slot while keeping the implementation simple for a small CRM.
+POSTGRES_WRITE_LOCK_ID = 734290126
+
 
 def business_today():
     return datetime.now(BUSINESS_TZ).date()
@@ -25,78 +61,238 @@ def business_now():
     return datetime.now(BUSINESS_TZ)
 
 
+def database_backend():
+    return "postgresql" if USING_POSTGRES else "sqlite"
+
+
+def _adapt_sql(sql):
+    if not USING_POSTGRES:
+        return sql
+
+    # "end" используется в расписании как имя колонки.
+    # Для PostgreSQL END — SQL keyword, поэтому экранируем
+    # только lowercase-идентификатор end.
+    sql = re.sub(r"\bend\b", '"end"', sql)
+
+    # sqlite3 использует ?, psycopg использует %s.
+    return sql.replace("?", "%s")
+
+
+class DatabaseCursor:
+    def __init__(self, connection, raw_cursor):
+        self.connection = connection
+        self.raw_cursor = raw_cursor
+
+    def execute(self, sql, params=None):
+        if params is None:
+            self.raw_cursor.execute(_adapt_sql(sql))
+        else:
+            self.raw_cursor.execute(_adapt_sql(sql), params)
+        return self
+
+    def executemany(self, sql, params_seq):
+        self.raw_cursor.executemany(_adapt_sql(sql), params_seq)
+        return self
+
+    def executescript(self, script):
+        if USING_POSTGRES:
+            raise RuntimeError("executescript is only used by the SQLite schema path.")
+        self.raw_cursor.executescript(script)
+        return self
+
+    def fetchone(self):
+        return self.raw_cursor.fetchone()
+
+    def fetchall(self):
+        return self.raw_cursor.fetchall()
+
+    def __iter__(self):
+        return iter(self.raw_cursor)
+
+    @property
+    def rowcount(self):
+        return self.raw_cursor.rowcount
+
+    @property
+    def lastrowid(self):
+        return getattr(self.raw_cursor, "lastrowid", None)
+
+
+class DatabaseConnection:
+    def __init__(self, raw_connection):
+        self.raw_connection = raw_connection
+
+    def cursor(self):
+        return DatabaseCursor(self, self.raw_connection.cursor())
+
+    def execute(self, sql, params=None):
+        normalized = sql.strip().upper().rstrip(";")
+        if USING_POSTGRES and normalized == "BEGIN IMMEDIATE":
+            cursor = self.raw_connection.execute("BEGIN")
+            self.raw_connection.execute(
+                "SELECT pg_advisory_xact_lock(%s)",
+                (POSTGRES_WRITE_LOCK_ID,)
+            )
+            return cursor
+        adapted = _adapt_sql(sql)
+        if params is None:
+            return self.raw_connection.execute(adapted)
+        return self.raw_connection.execute(adapted, params)
+
+    def executemany(self, sql, params_seq):
+        cursor = self.raw_connection.cursor()
+        cursor.executemany(_adapt_sql(sql), params_seq)
+        return cursor
+
+    def commit(self):
+        return self.raw_connection.commit()
+
+    def rollback(self):
+        return self.raw_connection.rollback()
+
+    def close(self):
+        return self.raw_connection.close()
+
+    def create_function(self, *args, **kwargs):
+        if USING_POSTGRES:
+            raise RuntimeError("SQLite create_function is not available on PostgreSQL.")
+        return self.raw_connection.create_function(*args, **kwargs)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if exc_type is None:
+            self.commit()
+        else:
+            self.rollback()
+        return False
+
+
 def get_connection():
+    if USING_POSTGRES:
+        if psycopg is None:
+            raise RuntimeError(
+                "DATABASE_URL задан, но psycopg не установлен. "
+                "Выполните pip install -r requirements.txt."
+            )
+        raw = psycopg.connect(
+            DATABASE_URL,
+            row_factory=dict_row,
+            connect_timeout=10
+        )
+        return DatabaseConnection(raw)
+
     DATABASE_PATH.parent.mkdir(
         parents=True,
         exist_ok=True
     )
-
-    connection = sqlite3.connect(
+    raw = sqlite3.connect(
         DATABASE_PATH,
         timeout=30
     )
-    connection.row_factory = sqlite3.Row
+    raw.row_factory = sqlite3.Row
+    raw.execute("PRAGMA foreign_keys = ON")
+    raw.execute("PRAGMA busy_timeout = 30000")
+    return DatabaseConnection(raw)
 
-    connection.execute(
-        "PRAGMA foreign_keys = ON"
-    )
-    connection.execute(
-        "PRAGMA busy_timeout = 30000"
-    )
 
-    return connection
+def table_columns(connection, table):
+    if USING_POSTGRES:
+        rows = connection.execute(
+            """SELECT column_name AS name
+               FROM information_schema.columns
+               WHERE table_schema = current_schema() AND table_name = ?""",
+            (table,)
+        ).fetchall()
+        return {row["name"] for row in rows}
+    return {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
 
+
+def insert_and_get_id(connection, sql, params):
+    if USING_POSTGRES:
+        cursor = connection.execute(sql.rstrip().rstrip(";") + " RETURNING id", params)
+        row = cursor.fetchone()
+        return row["id"]
+    cursor = connection.execute(sql, params)
+    return cursor.lastrowid
 
 def init_database():
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.executescript(
-        """
-        CREATE TABLE IF NOT EXISTS services (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            price INTEGER NOT NULL,
-            duration INTEGER NOT NULL
-        );
+    if USING_POSTGRES:
+        statements = [
+            """CREATE TABLE IF NOT EXISTS services (
+                id BIGSERIAL PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                price INTEGER NOT NULL,
+                duration INTEGER NOT NULL
+            )""",
+            """CREATE TABLE IF NOT EXISTS barbers (
+                id BIGSERIAL PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                position TEXT NOT NULL,
+                experience INTEGER NOT NULL
+            )""",
+            """CREATE TABLE IF NOT EXISTS bookings (
+                id BIGSERIAL PRIMARY KEY,
+                client_name TEXT NOT NULL,
+                client_phone TEXT NOT NULL,
+                service_id BIGINT NOT NULL REFERENCES services(id),
+                barber_id BIGINT NOT NULL REFERENCES barbers(id),
+                booking_date TEXT NOT NULL,
+                booking_time TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'confirmed',
+                created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP::text)
+            )""",
+            """CREATE INDEX IF NOT EXISTS idx_bookings_barber_date
+               ON bookings (barber_id, booking_date)""",
+            """CREATE OR REPLACE FUNCTION analytics_phone(value TEXT)
+               RETURNS TEXT
+               LANGUAGE SQL
+               IMMUTABLE
+               AS $$
+                   SELECT regexp_replace(COALESCE(value, ''), '\\D', '', 'g')
+               $$"""
+        ]
+        for statement in statements:
+            cursor.execute(statement)
+    else:
+        cursor.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS services (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                price INTEGER NOT NULL,
+                duration INTEGER NOT NULL
+            );
 
-        CREATE TABLE IF NOT EXISTS barbers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            position TEXT NOT NULL,
-            experience INTEGER NOT NULL
-        );
+            CREATE TABLE IF NOT EXISTS barbers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                position TEXT NOT NULL,
+                experience INTEGER NOT NULL
+            );
 
-        CREATE TABLE IF NOT EXISTS bookings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            CREATE TABLE IF NOT EXISTS bookings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_name TEXT NOT NULL,
+                client_phone TEXT NOT NULL,
+                service_id INTEGER NOT NULL,
+                barber_id INTEGER NOT NULL,
+                booking_date TEXT NOT NULL,
+                booking_time TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'confirmed',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (service_id) REFERENCES services(id),
+                FOREIGN KEY (barber_id) REFERENCES barbers(id)
+            );
 
-            client_name TEXT NOT NULL,
-            client_phone TEXT NOT NULL,
-
-            service_id INTEGER NOT NULL,
-            barber_id INTEGER NOT NULL,
-
-            booking_date TEXT NOT NULL,
-            booking_time TEXT NOT NULL,
-
-            status TEXT NOT NULL DEFAULT 'confirmed',
-
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-            FOREIGN KEY (service_id)
-                REFERENCES services(id),
-
-            FOREIGN KEY (barber_id)
-                REFERENCES barbers(id)
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_bookings_barber_date
-        ON bookings (
-            barber_id,
-            booking_date
-        );
-        """
-    )
+            CREATE INDEX IF NOT EXISTS idx_bookings_barber_date
+            ON bookings (barber_id, booking_date);
+            """
+        )
 
     # Seed only empty catalogs; renamed items must not reappear on restart.
     if not cursor.execute('SELECT 1 FROM services LIMIT 1').fetchone():
@@ -137,12 +333,13 @@ def seed_services(cursor):
 
     cursor.executemany(
         """
-        INSERT OR IGNORE INTO services (
+        INSERT INTO services (
             name,
             price,
             duration
         )
         VALUES (?, ?, ?)
+        ON CONFLICT(name) DO NOTHING
         """,
         services
     )
@@ -169,12 +366,13 @@ def seed_barbers(cursor):
 
     cursor.executemany(
         """
-        INSERT OR IGNORE INTO barbers (
+        INSERT INTO barbers (
             name,
             position,
             experience
         )
         VALUES (?, ?, ?)
+        ON CONFLICT(name) DO NOTHING
         """,
         barbers
     )
@@ -489,7 +687,8 @@ def create_booking_safely(
                 return None
 
 
-        cursor = connection.execute(
+        booking_id = insert_and_get_id(
+            connection,
             """
             INSERT INTO bookings (
                 client_name,
@@ -511,7 +710,15 @@ def create_booking_safely(
             )
         )
 
-        booking_id = cursor.lastrowid
+        # A returning client should automatically leave the archive after a new booking.
+        phone_key = re.sub(r"\D", "", str(client_phone or ""))
+        if phone_key:
+            connection.execute(
+                """UPDATE client_profiles
+                   SET archived=0, archived_at=NULL, revision=revision+1, updated_at=?
+                   WHERE phone_key=? AND archived=1""",
+                (business_now().isoformat(), phone_key)
+            )
 
         connection.commit()
 
@@ -530,26 +737,29 @@ def init_schedules(defaults):
     with closing(get_connection()) as connection, connection:
         connection.execute("BEGIN IMMEDIATE")
         hours_check = "CHECK ((working=0 AND start IS NULL AND end IS NULL) OR (working=1 AND start IS NOT NULL AND end IS NOT NULL AND start<end))"
+        ref_id = "BIGINT" if USING_POSTGRES else "INTEGER"
         connection.execute(f"""CREATE TABLE IF NOT EXISTS barber_weekly (
-            barber_id INTEGER NOT NULL REFERENCES barbers(id),
+            barber_id {ref_id} NOT NULL REFERENCES barbers(id),
             weekday INTEGER NOT NULL CHECK(weekday BETWEEN 0 AND 6),
             working INTEGER NOT NULL CHECK(working IN (0,1)),
             start TEXT, end TEXT, PRIMARY KEY(barber_id,weekday), {hours_check})""")
         connection.execute(f"""CREATE TABLE IF NOT EXISTS barber_exceptions (
-            barber_id INTEGER NOT NULL REFERENCES barbers(id),
+            barber_id {ref_id} NOT NULL REFERENCES barbers(id),
             date TEXT NOT NULL, working INTEGER NOT NULL CHECK(working IN (0,1)),
             start TEXT, end TEXT, PRIMARY KEY(barber_id,date), {hours_check})""")
-        connection.execute("""CREATE TABLE IF NOT EXISTS barber_blocks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            barber_id INTEGER NOT NULL REFERENCES barbers(id), date TEXT NOT NULL,
+        block_id = "BIGSERIAL PRIMARY KEY" if USING_POSTGRES else "INTEGER PRIMARY KEY AUTOINCREMENT"
+        connection.execute(f"""CREATE TABLE IF NOT EXISTS barber_blocks (
+            id {block_id},
+            barber_id {ref_id} NOT NULL REFERENCES barbers(id), date TEXT NOT NULL,
             start TEXT NOT NULL, end TEXT NOT NULL CHECK(start<end),
             reason TEXT NOT NULL DEFAULT '', UNIQUE(barber_id,date,start,end))""")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_barber_blocks_day ON barber_blocks(barber_id,date)")
         for barber in connection.execute("SELECT id,name FROM barbers").fetchall():
             for weekday in range(7):
                 hours = defaults.get(barber['name'], {}).get(weekday)
-                connection.execute("""INSERT OR IGNORE INTO barber_weekly
-                    (barber_id,weekday,working,start,end) VALUES (?,?,?,?,?)""",
+                connection.execute("""INSERT INTO barber_weekly
+                    (barber_id,weekday,working,start,end) VALUES (?,?,?,?,?)
+                    ON CONFLICT(barber_id,weekday) DO NOTHING""",
                     (barber['id'], weekday, int(bool(hours)), hours[0] if hours else None, hours[1] if hours else None))
 
 
@@ -604,10 +814,10 @@ def migrate_catalog():
     with closing(get_connection()) as connection, connection:
         connection.execute('BEGIN IMMEDIATE')
         for table in ('services', 'barbers'):
-            columns = {row['name'] for row in connection.execute(f'PRAGMA table_info({table})')}
+            columns = table_columns(connection, table)
             if 'active' not in columns:
                 connection.execute(f'ALTER TABLE {table} ADD COLUMN active INTEGER NOT NULL DEFAULT 1')
-        columns = {row['name'] for row in connection.execute('PRAGMA table_info(bookings)')}
+        columns = table_columns(connection, 'bookings')
         for name, kind in (('service_name','TEXT'), ('service_price','INTEGER'),
                            ('service_duration','INTEGER'), ('barber_name','TEXT')):
             if name not in columns:
@@ -629,14 +839,22 @@ def migrate_crm():
     from contextlib import closing
     with closing(get_connection()) as connection, connection:
         connection.execute('BEGIN IMMEDIATE')
-        connection.execute("""CREATE TABLE IF NOT EXISTS client_profiles (
+        updated_default = "(CURRENT_TIMESTAMP::text)" if USING_POSTGRES else "CURRENT_TIMESTAMP"
+        connection.execute(f"""CREATE TABLE IF NOT EXISTS client_profiles (
             phone_key TEXT PRIMARY KEY,
             note TEXT NOT NULL DEFAULT '',
             tags_json TEXT NOT NULL DEFAULT '[]',
+            archived INTEGER NOT NULL DEFAULT 0,
+            archived_at TEXT,
             revision INTEGER NOT NULL DEFAULT 0,
-            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            updated_at TEXT NOT NULL DEFAULT {updated_default}
         )""")
-        columns = {row['name'] for row in connection.execute('PRAGMA table_info(bookings)')}
+        profile_columns = table_columns(connection, 'client_profiles')
+        if 'archived' not in profile_columns:
+            connection.execute('ALTER TABLE client_profiles ADD COLUMN archived INTEGER NOT NULL DEFAULT 0')
+        if 'archived_at' not in profile_columns:
+            connection.execute('ALTER TABLE client_profiles ADD COLUMN archived_at TEXT')
+        columns = table_columns(connection, 'bookings')
         if 'comment' not in columns:
             connection.execute("ALTER TABLE bookings ADD COLUMN comment TEXT NOT NULL DEFAULT ''")
         if 'comment_revision' not in columns:
@@ -649,38 +867,81 @@ def migrate_reminders():
     connection = get_connection()
     try:
         connection.execute('BEGIN IMMEDIATE')
-        columns = {row['name'] for row in connection.execute('PRAGMA table_info(bookings)')}
+        columns = table_columns(connection, 'bookings')
         for name, definition in (
             ('reminded_at', 'TEXT'),
             ('reminder_revision', 'INTEGER NOT NULL DEFAULT 0'),
         ):
             if name not in columns:
                 connection.execute(f'ALTER TABLE bookings ADD COLUMN {name} {definition}')
-        connection.execute("""CREATE TABLE IF NOT EXISTS booking_reminder_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            booking_id INTEGER NOT NULL REFERENCES bookings(id),
+
+        history_id = "BIGSERIAL PRIMARY KEY" if USING_POSTGRES else "INTEGER PRIMARY KEY AUTOINCREMENT"
+        history_ref_id = "BIGINT" if USING_POSTGRES else "INTEGER"
+        history_created = "(CURRENT_TIMESTAMP::text)" if USING_POSTGRES else "CURRENT_TIMESTAMP"
+        connection.execute(f"""CREATE TABLE IF NOT EXISTS booking_reminder_history (
+            id {history_id},
+            booking_id {history_ref_id} NOT NULL REFERENCES bookings(id),
             action TEXT NOT NULL,
             reminded_at TEXT,
             booking_date TEXT NOT NULL,
             booking_time TEXT NOT NULL,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            created_at TEXT NOT NULL DEFAULT {history_created}
         )""")
         connection.execute('CREATE INDEX IF NOT EXISTS idx_reminder_history_booking ON booking_reminder_history(booking_id,id)')
         connection.execute('CREATE INDEX IF NOT EXISTS idx_reminder_dates ON bookings(status,booking_date,booking_time)')
-        connection.execute("""CREATE TRIGGER IF NOT EXISTS booking_reminder_reschedule
-            AFTER UPDATE OF booking_date,booking_time,service_id,barber_id ON bookings
-            WHEN OLD.booking_date IS NOT NEW.booking_date OR OLD.booking_time IS NOT NEW.booking_time
-                OR OLD.service_id IS NOT NEW.service_id OR OLD.barber_id IS NOT NEW.barber_id
-            BEGIN
-                INSERT INTO booking_reminder_history(booking_id,action,reminded_at,booking_date,booking_time)
-                VALUES(OLD.id,'reschedule_reset',OLD.reminded_at,OLD.booking_date,OLD.booking_time);
-                UPDATE bookings SET reminded_at=NULL,reminder_revision=reminder_revision+1 WHERE id=NEW.id;
-            END""")
-        connection.execute("""CREATE TRIGGER IF NOT EXISTS booking_reminder_status_revision
-            AFTER UPDATE OF status ON bookings WHEN OLD.status IS NOT NEW.status
-            BEGIN
-                UPDATE bookings SET reminder_revision=reminder_revision+1 WHERE id=NEW.id;
-            END""")
+
+        if USING_POSTGRES:
+            connection.execute("""CREATE OR REPLACE FUNCTION manor_reminder_reschedule_trigger()
+                RETURNS trigger LANGUAGE plpgsql AS $$
+                BEGIN
+                    IF OLD.booking_date IS DISTINCT FROM NEW.booking_date
+                       OR OLD.booking_time IS DISTINCT FROM NEW.booking_time
+                       OR OLD.service_id IS DISTINCT FROM NEW.service_id
+                       OR OLD.barber_id IS DISTINCT FROM NEW.barber_id THEN
+                        INSERT INTO booking_reminder_history(
+                            booking_id,action,reminded_at,booking_date,booking_time
+                        ) VALUES(
+                            OLD.id,'reschedule_reset',OLD.reminded_at,OLD.booking_date,OLD.booking_time
+                        );
+                        NEW.reminded_at := NULL;
+                        NEW.reminder_revision := OLD.reminder_revision + 1;
+                    END IF;
+                    RETURN NEW;
+                END;
+                $$""")
+            connection.execute('DROP TRIGGER IF EXISTS booking_reminder_reschedule ON bookings')
+            connection.execute("""CREATE TRIGGER booking_reminder_reschedule
+                BEFORE UPDATE OF booking_date,booking_time,service_id,barber_id ON bookings
+                FOR EACH ROW EXECUTE FUNCTION manor_reminder_reschedule_trigger()""")
+
+            connection.execute("""CREATE OR REPLACE FUNCTION manor_reminder_status_trigger()
+                RETURNS trigger LANGUAGE plpgsql AS $$
+                BEGIN
+                    IF OLD.status IS DISTINCT FROM NEW.status THEN
+                        NEW.reminder_revision := OLD.reminder_revision + 1;
+                    END IF;
+                    RETURN NEW;
+                END;
+                $$""")
+            connection.execute('DROP TRIGGER IF EXISTS booking_reminder_status_revision ON bookings')
+            connection.execute("""CREATE TRIGGER booking_reminder_status_revision
+                BEFORE UPDATE OF status ON bookings
+                FOR EACH ROW EXECUTE FUNCTION manor_reminder_status_trigger()""")
+        else:
+            connection.execute("""CREATE TRIGGER IF NOT EXISTS booking_reminder_reschedule
+                AFTER UPDATE OF booking_date,booking_time,service_id,barber_id ON bookings
+                WHEN OLD.booking_date IS NOT NEW.booking_date OR OLD.booking_time IS NOT NEW.booking_time
+                    OR OLD.service_id IS NOT NEW.service_id OR OLD.barber_id IS NOT NEW.barber_id
+                BEGIN
+                    INSERT INTO booking_reminder_history(booking_id,action,reminded_at,booking_date,booking_time)
+                    VALUES(OLD.id,'reschedule_reset',OLD.reminded_at,OLD.booking_date,OLD.booking_time);
+                    UPDATE bookings SET reminded_at=NULL,reminder_revision=reminder_revision+1 WHERE id=NEW.id;
+                END""")
+            connection.execute("""CREATE TRIGGER IF NOT EXISTS booking_reminder_status_revision
+                AFTER UPDATE OF status ON bookings WHEN OLD.status IS NOT NEW.status
+                BEGIN
+                    UPDATE bookings SET reminder_revision=reminder_revision+1 WHERE id=NEW.id;
+                END""")
         connection.commit()
     except Exception:
         connection.rollback()
@@ -691,7 +952,7 @@ def migrate_reminders():
 
 if __name__ == '__main__':
     init_database()
-    print(f'База создана: {DATABASE_PATH}')
+    print(f'База готова: {database_backend()}')
 
 
 def get_business_analytics(period='30d', today=None):
@@ -709,16 +970,17 @@ def get_business_analytics(period='30d', today=None):
         raise ValueError('Неизвестный период аналитики.')
     today = today or business_today()
     with closing(get_connection()) as connection:
-        connection.create_function('analytics_phone', 1,
-                                   lambda value: re.sub(r'\D', '', str(value or '')))
+        if not USING_POSTGRES:
+            connection.create_function('analytics_phone', 1,
+                                       lambda value: re.sub(r'\D', '', str(value or '')))
         # One consistent read transaction for all report sections.
         connection.execute('BEGIN')
         bounds = connection.execute(
-            'SELECT MIN(booking_date), MAX(booking_date) FROM bookings').fetchone()
+            'SELECT MIN(booking_date) AS min_date, MAX(booking_date) AS max_date FROM bookings').fetchone()
         end = today
         if period == 'all':
-            start = date.fromisoformat(bounds[0]) if bounds[0] else today
-            end = date.fromisoformat(bounds[1]) if bounds[1] else today
+            start = date.fromisoformat(bounds['min_date']) if bounds['min_date'] else today
+            end = date.fromisoformat(bounds['max_date']) if bounds['max_date'] else today
         elif period in ('7d', '30d'):
             start = today - timedelta(days=6 if period == '7d' else 29)
         elif period == 'month':
@@ -756,7 +1018,7 @@ def get_business_analytics(period='30d', today=None):
             # Identifiers are fixed internal values, never request input.
             name = 'service_name' if kind == 'services' else 'barber_name'
             identity = 'service_id' if kind == 'services' else 'barber_id'
-            return [dict(row) for row in connection.execute(f"""
+            items = [dict(row) for row in connection.execute(f"""
                 SELECT {identity} AS id, COALESCE({name}, 'Без названия') AS name,
                        COUNT(*) AS completed, COALESCE(SUM(service_price),0) AS revenue,
                        COALESCE(SUM(service_price),0)*1.0/COUNT(*) AS average_check,
@@ -766,6 +1028,9 @@ def get_business_analytics(period='30d', today=None):
                 GROUP BY {identity}, {name}
                 ORDER BY completed DESC, revenue DESC, name
             """, params)]
+            for item in items:
+                item['average_check'] = float(item['average_check'] or 0)
+            return items
         granularity = 'month' if (end-start).days > 92 else 'day'
         expression = "substr(booking_date,1,7)" if granularity == 'month' else 'booking_date'
         grouped = {row['date']: dict(row) for row in connection.execute(f"""

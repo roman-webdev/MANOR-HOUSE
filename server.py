@@ -1,8 +1,7 @@
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 import hmac
 import os
 import re
-import sqlite3
 import json
 import unicodedata
 from functools import wraps
@@ -33,7 +32,11 @@ from database import (
     get_bookings_for_barber_date,
     create_booking_safely,
     get_all_bookings,
-    update_booking_status
+    update_booking_status,
+    DB_OPERATIONAL_ERRORS,
+    DB_INTEGRITY_ERRORS,
+    insert_and_get_id,
+    database_backend
 )
 
 
@@ -527,7 +530,8 @@ def send_telegram_reschedule(
 def health():
     return jsonify({
         "status": "ok",
-        "service": "MANOR HOUSE API"
+        "service": "MANOR HOUSE API",
+        "database": database_backend()
     }), 200
 
 
@@ -918,6 +922,8 @@ def crm_profile(row=None):
     return {
         "note": row["note"] if row else "",
         "tags": json.loads(row["tags_json"]) if row else [],
+        "archived": bool(row["archived"]) if row else False,
+        "archived_at": row["archived_at"] if row else None,
         "revision": row["revision"] if row else 0
     }
 
@@ -978,19 +984,122 @@ def admin_client_profile(phone):
             if request.method == 'PUT':
                 if data['revision'] != (row['revision'] if row else 0):
                     return jsonify(success=False, message='Карточка изменена в другой вкладке. Скопируйте свои правки и откройте карточку заново.'), 409
-                connection.execute("""INSERT INTO client_profiles(phone_key,note,tags_json,revision)
-                    VALUES(?,?,?,1) ON CONFLICT(phone_key) DO UPDATE SET
+                updated_at = business_now().isoformat()
+                connection.execute("""INSERT INTO client_profiles(
+                        phone_key,note,tags_json,revision,updated_at
+                    ) VALUES(?,?,?,1,?) ON CONFLICT(phone_key) DO UPDATE SET
                     note=excluded.note,tags_json=excluded.tags_json,
-                    revision=client_profiles.revision+1,updated_at=CURRENT_TIMESTAMP""",
-                    (key, note, json.dumps(cleaned, ensure_ascii=False)))
+                    revision=client_profiles.revision+1,updated_at=excluded.updated_at""",
+                    (key, note, json.dumps(cleaned, ensure_ascii=False), updated_at))
                 row = connection.execute('SELECT * FROM client_profiles WHERE phone_key=?', (key,)).fetchone()
             response = jsonify(success=True, profile=crm_profile(row))
             response.headers['Cache-Control'] = 'no-store'
             return response
-    except sqlite3.OperationalError:
+    except DB_OPERATIONAL_ERRORS:
         return jsonify(success=False, message='База временно недоступна. Повторите сохранение.'), 503
     except ValueError as error:
         return jsonify(success=False, message=str(error)), 400
+
+
+@app.route('/api/admin/clients/<phone>/archive', methods=['PATCH'])
+def admin_client_archive(phone):
+    """Archive/restore a CRM client without deleting visit history or analytics data."""
+    if not is_admin_authenticated():
+        return jsonify(success=False, message='Требуется авторизация.'), 401
+
+    key = normalize_client_phone(phone)
+    if not key or len(key) > 32:
+        return jsonify(success=False, message='Некорректный телефон.'), 400
+    if not request.is_json:
+        return jsonify(success=False, message='Ожидаются данные JSON.'), 415
+
+    data = request.get_json(silent=True)
+    if (not isinstance(data, dict) or type(data.get('archived')) is not bool
+            or type(data.get('revision')) is not int or data['revision'] < 0
+            or set(data) != {'archived', 'revision'}):
+        return jsonify(
+            success=False,
+            message='Нужны archived (boolean) и revision (целое число).'
+        ), 400
+
+    try:
+        with close_connection(get_connection()) as connection, connection:
+            connection.execute('BEGIN IMMEDIATE')
+            row = connection.execute(
+                'SELECT * FROM client_profiles WHERE phone_key=?', (key,)
+            ).fetchone()
+            exists = row is not None or any(
+                normalize_client_phone(item['client_phone']) == key
+                for item in connection.execute('SELECT DISTINCT client_phone FROM bookings')
+            )
+            if not exists:
+                return jsonify(success=False, message='Клиент не найден.'), 404
+
+            current_revision = row['revision'] if row else 0
+            if data['revision'] != current_revision:
+                return jsonify(
+                    success=False,
+                    message='Карточка изменена в другой вкладке. Откройте клиента заново.'
+                ), 409
+
+            current_archived = bool(row['archived']) if row else False
+
+            # Do not hide a client who still has a current/future confirmed visit.
+            # The booking must stay visible to the administrator until it is
+            # completed, cancelled or moved into the past with another status.
+            if data['archived'] and not current_archived:
+                today = business_today().isoformat()
+                active_booking = None
+                for booking in connection.execute(
+                    """SELECT id, client_name, client_phone, booking_date, booking_time
+                       FROM bookings
+                       WHERE status='confirmed' AND booking_date>=?
+                       ORDER BY booking_date, booking_time, id""",
+                    (today,)
+                ):
+                    if normalize_client_phone(booking['client_phone']) == key:
+                        active_booking = booking
+                        break
+
+                if active_booking is not None:
+                    return jsonify(
+                        success=False,
+                        message=(
+                            f"Нельзя архивировать клиента: есть подтверждённая запись "
+                            f"на {active_booking['booking_date']} в {active_booking['booking_time']}. "
+                            "Сначала отмените или завершите её."
+                        )
+                    ), 409
+
+            if current_archived != data['archived']:
+                now = business_now().isoformat()
+                archived_at = now if data['archived'] else None
+                if row is None:
+                    connection.execute(
+                        """INSERT INTO client_profiles(
+                            phone_key, archived, archived_at, revision, updated_at
+                        ) VALUES(?,?,?,?,?)""",
+                        (key, 1 if data['archived'] else 0, archived_at, 1, now)
+                    )
+                else:
+                    connection.execute(
+                        """UPDATE client_profiles SET
+                            archived=?, archived_at=?, revision=revision+1, updated_at=?
+                           WHERE phone_key=?""",
+                        (1 if data['archived'] else 0, archived_at, now, key)
+                    )
+                row = connection.execute(
+                    'SELECT * FROM client_profiles WHERE phone_key=?', (key,)
+                ).fetchone()
+
+            response = jsonify(success=True, profile=crm_profile(row))
+            response.headers['Cache-Control'] = 'no-store'
+            return response
+    except DB_OPERATIONAL_ERRORS:
+        return jsonify(
+            success=False,
+            message='База временно недоступна. Повторите действие.'
+        ), 503
 
 
 @app.route('/api/admin/bookings/<int:booking_id>/comment', methods=['GET', 'PUT'])
@@ -1014,7 +1123,7 @@ def admin_booking_comment(booking_id):
             response = jsonify(success=True, comment=row['comment'], revision=row['comment_revision'])
             response.headers['Cache-Control'] = 'no-store'
             return response
-    except sqlite3.OperationalError:
+    except DB_OPERATIONAL_ERRORS:
         return jsonify(success=False, message='База временно недоступна. Повторите сохранение.'), 503
     except ValueError as error:
         return jsonify(success=False, message=str(error)), 400
@@ -1146,6 +1255,32 @@ def admin_bookings():
 
     bookings_list = get_all_bookings()
 
+    # The bookings tab is an operational workspace. Archived clients and their
+    # historical rows stay in the database (and therefore in CRM history and
+    # analytics), but are hidden from this working list until restored.
+    with close_connection(get_connection()) as connection:
+        archived_phone_keys = {
+            row['phone_key']
+            for row in connection.execute(
+                'SELECT phone_key FROM client_profiles WHERE archived=1'
+            )
+        }
+
+    if archived_phone_keys:
+        today = business_today().isoformat()
+        bookings_list = [
+            booking for booking in bookings_list
+            if (
+                normalize_client_phone(booking.get('client_phone')) not in archived_phone_keys
+                # Safety for data archived by an older version: never hide an
+                # operational confirmed visit for today or a future date.
+                or (
+                    booking.get('status') == 'confirmed'
+                    and str(booking.get('booking_date') or '') >= today
+                )
+            )
+        ]
+
     return jsonify({
         "success": True,
         "bookings": bookings_list
@@ -1254,7 +1389,7 @@ def admin_reschedule_booking(booking_id):
                 "new_time": booking_time
             }
 
-    except sqlite3.OperationalError:
+    except DB_OPERATIONAL_ERRORS:
         return jsonify(
             success=False,
             message="База временно недоступна. Повторите действие."
@@ -1369,7 +1504,7 @@ def schedule_admin_only(fn):
             ), 409
         except ValueError as error:
             return jsonify(success=False, message=str(error)), 400
-        except sqlite3.OperationalError:
+        except DB_OPERATIONAL_ERRORS:
             return jsonify(success=False, message="База временно недоступна. Повторите действие."), 503
     return wrapped
 
@@ -1687,11 +1822,14 @@ def admin_catalog(catalog, item_id=None):
             if current:
                 connection.execute(f"UPDATE {catalog} SET " + ','.join(f'{key}=?' for key in fields) + ' WHERE id=?', [values[key] for key in fields]+[item_id])
             else:
-                cursor = connection.execute(f"INSERT INTO {catalog} ("+','.join(fields)+') VALUES ('+','.join('?' for _ in fields)+')', [values[key] for key in fields])
-                item_id = cursor.lastrowid
+                item_id = insert_and_get_id(
+                    connection,
+                    f"INSERT INTO {catalog} ("+','.join(fields)+') VALUES ('+','.join('?' for _ in fields)+')',
+                    [values[key] for key in fields]
+                )
                 if catalog == 'barbers':
                     connection.executemany('INSERT INTO barber_weekly(barber_id,weekday,working,start,end) VALUES(?,?,0,NULL,NULL)', [(item_id,day) for day in range(7)])
-        except sqlite3.IntegrityError:
+        except DB_INTEGRITY_ERRORS:
             return jsonify(success=False, message='Такое название / имя уже существует.'), 409
         item = dict(connection.execute(f'SELECT * FROM {catalog} WHERE id=?', (item_id,)).fetchone())
     return jsonify(success=True, item=item), (200 if current else 201)
@@ -1733,7 +1871,7 @@ def admin_reminders():
                            timezone=BUSINESS_TIMEZONE, reminders=[dict(row) for row in rows])
         response.headers['Cache-Control'] = 'no-store'
         return response
-    except sqlite3.OperationalError:
+    except DB_OPERATIONAL_ERRORS:
         return jsonify(success=False, message='База временно недоступна. Повторите действие.'), 503
 
 
@@ -1761,9 +1899,13 @@ def admin_booking_reminder(booking_id):
             if row['reminder_revision'] != data['revision']:
                 return jsonify(success=False, message='Запись изменена. Список обновлён — проверьте новое состояние.'), 409
             if bool(row['reminded_at']) != data['reminded']:
+                reminded_at = (
+                    datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                    if data['reminded'] else None
+                )
                 connection.execute("""UPDATE bookings SET
-                    reminded_at=CASE WHEN ? THEN strftime('%Y-%m-%dT%H:%M:%fZ','now') ELSE NULL END,
-                    reminder_revision=reminder_revision+1 WHERE id=?""", (data['reminded'], booking_id))
+                    reminded_at=?, reminder_revision=reminder_revision+1 WHERE id=?""",
+                    (reminded_at, booking_id))
                 connection.execute("""INSERT INTO booking_reminder_history
                     (booking_id,action,reminded_at,booking_date,booking_time)
                     SELECT id,?,reminded_at,booking_date,booking_time FROM bookings WHERE id=?""",
@@ -1772,7 +1914,7 @@ def admin_booking_reminder(booking_id):
             response = jsonify(success=True, reminder=dict(result))
             response.headers['Cache-Control'] = 'no-store'
             return response
-    except sqlite3.OperationalError:
+    except DB_OPERATIONAL_ERRORS:
         return jsonify(success=False, message='База временно недоступна. Повторите действие.'), 503
 
 

@@ -1237,11 +1237,14 @@ const clientsCount = document.querySelector('#clients-count');
 const clientsVisits = document.querySelector('#clients-visits');
 const clientsCancelled = document.querySelector('#clients-cancelled');
 const clientsRevenue = document.querySelector('#clients-revenue');
+const clientsViewActive = document.querySelector('#clients-view-active');
+const clientsViewArchived = document.querySelector('#clients-view-archived');
 const clientModal = document.querySelector('#client-modal');
 const clientModalBody = document.querySelector('#client-modal-body');
 const clientModalClose = document.querySelector('#client-modal-close');
 let crmClients = [];
 let clientsLoaded = false;
+let clientsView = 'active';
 
 function setCrmTab(tab) {
     remindersPanel.hidden = tab !== 'reminders';
@@ -1282,28 +1285,34 @@ function formatMoney(value) {
 function renderClients() {
     const query = clientsSearch.value.trim().toLowerCase();
     const digits = query.replace(/\D/g, '');
-    const visible = crmClients.filter(client => {
+    const archived = clientsView === 'archived';
+    const segment = crmClients.filter(client => Boolean(client.archived) === archived);
+    const visible = segment.filter(client => {
         const name = String(client.name || '').toLowerCase();
         const phone = String(client.phone || '').toLowerCase();
         const phoneDigits = phone.replace(/\D/g, '');
         return !query || name.includes(query) || phone.includes(query) || (digits && phoneDigits.includes(digits));
     });
-
-    clientsCount.textContent = crmClients.length;
-    clientsVisits.textContent = crmClients.reduce((sum, client) => sum + Number(client.completed || 0), 0);
-    clientsCancelled.textContent = crmClients.reduce((sum, client) => sum + Number(client.cancelled || 0), 0);
-    clientsRevenue.textContent = formatMoney(crmClients.reduce((sum, client) => sum + Number(client.total_spent || 0), 0));
-
+    clientsViewActive.setAttribute('aria-pressed', String(!archived));
+    clientsViewArchived.setAttribute('aria-pressed', String(archived));
+    clientsCount.textContent = segment.length;
+    clientsVisits.textContent = segment.reduce((sum, client) => sum + Number(client.completed || 0), 0);
+    clientsCancelled.textContent = segment.reduce((sum, client) => sum + Number(client.cancelled || 0), 0);
+    clientsRevenue.textContent = formatMoney(segment.reduce((sum, client) => sum + Number(client.total_spent || 0), 0));
     if (!visible.length) {
-        clientsList.innerHTML = '<div class="empty-state"><strong>Клиенты не найдены</strong><span>Измените поиск или создайте первую запись.</span></div>';
+        const title = archived ? 'Архив пуст' : 'Клиенты не найдены';
+        const hint = archived
+            ? 'Архивированные клиенты появятся здесь.'
+            : 'Измените поиск или создайте первую запись.';
+        clientsList.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${hint}</span></div>`;
         return;
     }
-
     clientsList.innerHTML = visible.map(client => `
-        <article class="client-row">
+        <article class="client-row${client.archived ? ' client-row-archived' : ''}">
             <div>
                 <strong>${escapeBookingHtml(client.name)}</strong>
                 <small>${escapeBookingHtml(client.phone)}</small>
+                ${client.archived ? '<span class="client-archive-badge">В архиве</span>' : ''}
             </div>
             <div class="client-metric"><span>Записей</span><b>${escapeBookingHtml(client.total_bookings)}</b></div>
             <div class="client-metric"><span>Визитов</span><b>${escapeBookingHtml(client.completed)}</b></div>
@@ -1312,7 +1321,6 @@ function renderClients() {
         </article>
     `).join('');
 }
-
 async function loadClients(force = false) {
     if (clientsLoaded && !force) {
         renderClients();
@@ -1347,7 +1355,11 @@ function openClient(client) {
                 <p>${escapeBookingHtml(client.phone)}</p>
                 <p>Последний визит: <strong>${client.last_visit ? escapeBookingHtml(formatDate(client.last_visit)) : 'ещё не было'}</strong></p>
                 <p>Частый мастер: <strong>${escapeBookingHtml(client.favorite_barber || '—')}</strong></p>
-                <button class="new-booking-button client-repeat-booking" type="button" data-repeat-booking="true">+ Новая запись</button>
+                <p class="client-archive-state">Статус: <strong>${client.archived ? 'в архиве' : 'активный'}</strong></p>
+                <div class="client-profile-actions">
+                    ${client.archived ? '' : '<button class="new-booking-button client-repeat-booking" type="button" data-repeat-booking="true">+ Новая запись</button>'}
+                    <button class="client-archive-action" type="button" data-client-archive="true" disabled>${client.archived ? 'Восстановить' : 'Архивировать'}</button>
+                </div>
             </div>
             <div class="client-profile-stats">
                 <div><span>Всего записей</span><strong>${escapeBookingHtml(client.total_bookings)}</strong></div>
@@ -1378,12 +1390,56 @@ function openClient(client) {
     repeatButton?.addEventListener('click', () => {
         closeCrmClient(() => openNewBooking({name: client.name, phone: client.phone}));
     });
+    clientModalBody.querySelector('[data-client-archive]')?.addEventListener('click', () => {
+        requestClientArchive(client);
+    });
 }
 
+function requestClientArchive(client) {
+    if (crmProfileBusy) return;
+    if (crmProfileDirty) {
+        const message = document.querySelector('#crm-profile-message');
+        if (message) message.textContent = 'Сначала сохраните заметку и теги или отмените изменения.';
+        return;
+    }
+    const nextArchived = !Boolean(client.archived);
+    openConfirmation({
+        title: nextArchived ? 'Архивировать клиента?' : 'Восстановить клиента?',
+        description: nextArchived
+            ? 'Клиент исчезнет из активного списка и раздела «Записи клиентов». История записей и данные аналитики сохранятся.'
+            : 'Клиент снова появится в активном списке, а его записи вернутся в раздел «Записи клиентов».',
+        details: [
+            ['Клиент', client.name],
+            ['Телефон', client.phone],
+            ['Записей', client.total_bookings]
+        ],
+        confirmLabel: nextArchived ? 'Архивировать' : 'Восстановить',
+        busyLabel: nextArchived ? 'Архивируем…' : 'Восстанавливаем…',
+        onConfirm: async () => {
+            const data = await bookingJson(`/api/admin/clients/${encodeURIComponent(client.key)}/archive`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({archived: nextArchived, revision: client.revision})
+            });
+            Object.assign(client, data.profile);
+            clientsLoaded = false;
+            crmProfileDirty = false;
+            crmEpoch++;
+            clientModal.close();
+            activeCrmClient = null;
+            await Promise.all([
+                loadClients(true),
+                loadBookings({silent: true})
+            ]);
+        }
+    });
+}
 document.querySelector('#nav-schedule').addEventListener('click',()=>setCrmTab('schedule'));
 document.querySelector('#nav-clients').addEventListener('click',()=>setCrmTab('clients'));
 document.querySelector('#nav-bookings').addEventListener('click',()=>setCrmTab('bookings'));
 clientsSearch.addEventListener('input', renderClients);
+clientsViewActive.addEventListener('click', () => { clientsView = 'active'; renderClients(); });
+clientsViewArchived.addEventListener('click', () => { clientsView = 'archived'; renderClients(); });
 clientsList.addEventListener('click', event => {
     const button = event.target.closest('[data-client-key]');
     if (!button) return;
@@ -1732,6 +1788,8 @@ async function mountCrmProfile(client) {
         const data = await bookingJson(`/api/admin/clients/${encodeURIComponent(client.key)}/profile`);
         if (epoch !== crmEpoch || !clientModal.open) return;
         Object.assign(client, data.profile);
+        const archiveButton = clientModalBody.querySelector('[data-client-archive]');
+        if (archiveButton) archiveButton.disabled = false;
         let tags = [...client.tags];
         let saved = JSON.stringify([client.note, tags]);
         host.innerHTML = `
