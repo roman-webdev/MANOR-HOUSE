@@ -7,7 +7,7 @@ services, reminders, and business analytics.
 
 **Live demo:** https://manor-house.onrender.com
 **Health check:** https://manor-house.onrender.com/api/health
-**Admin panel:** `/admin.html` --- protected by authentication;
+**Admin panel:** `/admin.html` — protected by authentication;
 credentials are not published.
 
 > The live service uses Render Free and may need extra time to wake up
@@ -127,18 +127,18 @@ only in environment variables and are not committed to the repository.
 
 ## Tech stack
 
-  Layer                     Technology
-  ------------------------- -----------------------------------------
-  Frontend                  HTML5, CSS3, Vanilla JavaScript
-  Backend                   Python, Flask
-  Database                  PostgreSQL / Neon
-  Local database fallback   SQLite
-  PostgreSQL driver         Psycopg 3
-  Production server         Gunicorn
-  Hosting                   Render
-  Notifications             Telegram Bot API
-  Configuration             python-dotenv
-  Timezone                  `Europe/Kyiv` via `zoneinfo` / `tzdata`
+| Layer | Technology |
+| --- | --- |
+| Frontend | HTML5, CSS3, Vanilla JavaScript |
+| Backend | Python, Flask |
+| Database | PostgreSQL / Neon |
+| Local database fallback | SQLite |
+| PostgreSQL driver | Psycopg 3 |
+| Production server | Gunicorn |
+| Hosting | Render |
+| Notifications | Telegram Bot API |
+| Configuration | python-dotenv |
+| Timezone | Europe/Kyiv via zoneinfo / tzdata |
 
 ## Architecture
 
@@ -219,7 +219,7 @@ MANOR-HOUSE/
 ### 1. Clone the repository
 
 ``` bash
-git clone <your-repository-url>
+git clone git@github.com:Romario15811/MANOR-HOUSE.git
 cd MANOR-HOUSE
 ```
 
