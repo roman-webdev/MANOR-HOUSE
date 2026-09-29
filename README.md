@@ -107,6 +107,24 @@ The owner receives Telegram notifications for important booking events,
 including new bookings and rescheduling. Telegram credentials are stored
 only in environment variables and are not committed to the repository.
 
+## Screenshots
+
+### Public website
+
+![MANOR HOUSE public website](docs/screenshots/01-home.png)
+
+### Online booking
+
+![MANOR HOUSE online booking](docs/screenshots/02-booking.png)
+
+### Admin CRM
+
+![MANOR HOUSE admin CRM](docs/screenshots/03-admin-crm.png)
+
+### Business analytics
+
+![MANOR HOUSE business analytics](docs/screenshots/04-analytics.png)
+
 ## Tech stack
 
   Layer                     Technology
