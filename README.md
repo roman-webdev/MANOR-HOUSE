@@ -1,12 +1,12 @@
-# MANOR HOUSE --- Barbershop Booking & CRM
+# MANOR HOUSE — Barbershop Booking & CRM
 
 A full-stack portfolio project for a premium barbershop: a cinematic
 public website, online booking system, Telegram notifications, and a
 protected admin CRM for managing appointments, clients, schedules,
 services, reminders, and business analytics.
 
-**Live demo:** https://manor-house.onrender.com\
-**Health check:** https://manor-house.onrender.com/api/health\
+**Live demo:** https://manor-house.onrender.com
+**Health check:** https://manor-house.onrender.com/api/health
 **Admin panel:** `/admin.html` --- protected by authentication;
 credentials are not published.
 
