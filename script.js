@@ -167,7 +167,7 @@ function renderDates() {
         button.type = "button";
         button.className = "date-button";
         button.dataset.date = value;
-        button.setAttribute("aria-label", day.toLocaleDateString("ru-RU", {
+        button.setAttribute("aria-label", day.toLocaleDateString(PublicI18n.locale(), {
             weekday: "long", day: "numeric", month: "long", year: "numeric"
         }));
         button.setAttribute("aria-pressed", String(value === bookingData.date));
@@ -175,22 +175,22 @@ function renderDates() {
         const number = document.createElement("strong");
         number.textContent = day.getDate();
         const weekday = document.createElement("span");
-        weekday.textContent = day.toLocaleDateString("ru-RU", { weekday: "short" });
+        weekday.textContent = day.toLocaleDateString(PublicI18n.locale(), { weekday: "short" });
         const month = document.createElement('span');
-        month.textContent = day.toLocaleDateString('ru-RU', { month: 'short' });
+        month.textContent = day.toLocaleDateString(PublicI18n.locale(), { month: 'short' });
         button.append(weekday, number, month);
         button.addEventListener("click", () => {
             bookingData.date = value;
-            bookingData.dateLabel = day.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+            bookingData.dateLabel = day.toLocaleDateString(PublicI18n.locale(), { day: "numeric", month: "short" });
             bookingData.time = "";
             createTimes();
             showBookingStep(4);
         });
         datesGrid.appendChild(button);
     }
-    const month = day => day.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+    const month = day => day.toLocaleDateString(PublicI18n.locale(), { month: "long", year: "numeric" });
     datesPeriod.textContent = month(first) === month(last) ? month(first) : `${month(first)} — ${month(last)}`;
-    datesStatus.textContent = `Запись доступна до ${parseCalendarDate(dateWindow.max_date).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })} включительно.`;
+    datesStatus.textContent = `Запись доступна до ${parseCalendarDate(dateWindow.max_date).toLocaleDateString(PublicI18n.locale(), { day: "numeric", month: "long" })} включительно.`;
     datesPrevious.disabled = datePage === 0;
     datesNext.disabled = formatLocalDate(calendarDateAt((datePage + 1) * 7)) > dateWindow.max_date;
 }
@@ -201,11 +201,7 @@ datesRetry.addEventListener("click", createDates);
 
 async function createTimes() {
     const version = ++timesRequest;
-    timesGrid.innerHTML = `
-        <p class="loading-times">
-            Проверяем свободное время...
-        </p>
-    `;
+    timesGrid.replaceChildren(element('p', 'loading-times', "Проверяем свободное время..."));
 
     const params = new URLSearchParams({
         barber: bookingData.master,
@@ -228,15 +224,10 @@ async function createTimes() {
             );
         }
 
-        timesGrid.innerHTML = "";
+        timesGrid.replaceChildren();
 
         if (data.available_times.length === 0) {
-            timesGrid.innerHTML = `
-                <p class="no-times">
-                    На эту дату свободного времени нет.
-                    Выберите другую дату.
-                </p>
-            `;
+            timesGrid.replaceChildren(element('p', 'no-times', "На эту дату свободного времени нет. Выберите другую дату."));
 
             return;
         }
@@ -267,11 +258,7 @@ async function createTimes() {
             error
         );
 
-        timesGrid.innerHTML = `
-            <p class="no-times">
-                Не удалось загрузить свободное время.
-            </p>
-        `;
+        timesGrid.replaceChildren(element('p', 'no-times', "Не удалось загрузить свободное время."));
     }
 }
 
@@ -279,7 +266,7 @@ async function createTimes() {
 function updateBookingSummary() {
     const values = {
         service: bookingData.service, master: bookingData.master,
-        date: bookingData.dateLabel, time: bookingData.time,
+        date: bookingData.date ? parseCalendarDate(bookingData.date).toLocaleDateString(PublicI18n.locale(), {day: "numeric", month: "short"}) : "", time: bookingData.time,
         price: bookingData.service ? `${bookingData.price} ₴` : '',
         duration: bookingData.duration ? `${bookingData.duration} мин` : ''
     };
@@ -372,7 +359,7 @@ function renderCatalog() {
         card.append(portrait(barber, 'barber-photo', number));
         const info = element('div', 'barber-info');
         info.append(element('p', 'barber-eyebrow', number + ' / ' + (barber.position || 'МАСТЕР')));
-        info.append(element('h3', '', barber.name));
+        const name = element('h3', '', barber.name); name.dataset.i18nPreserve = ''; info.append(name);
         const experience = experienceText(barber.experience);
         if (experience) info.append(element('span', 'barber-experience', experience));
         const divider = element('span', 'barber-divider');
@@ -521,6 +508,7 @@ bookingForm.addEventListener(
         const phone = bookingPhone.value.trim();
 
         if (name.length < 2) {
+            bookingName.focus();
             showBookingMessage(
                 "Введите корректное имя.",
                 "error"
@@ -532,6 +520,7 @@ bookingForm.addEventListener(
             phone.replace(/[\s()-]/g, "");
 
         if (!/^\+?\d{10,15}$/.test(cleanedPhone)) {
+            bookingPhone.focus();
             showBookingMessage(
                 "Введите корректный номер телефона.",
                 "error"
@@ -620,7 +609,7 @@ bookingForm.addEventListener(
 
 
             showBookingMessage(
-                error.message,
+                PublicI18n.translate(error.message) !== error.message || document.documentElement.lang === "ru" ? error.message : "Не удалось выполнить запрос. Попробуйте ещё раз.",
                 "error"
             );
 
@@ -745,3 +734,11 @@ loadCatalog();
     controls.querySelector('.review-prev').addEventListener('click', () => show(current - 1));
     controls.querySelector('.review-next').addEventListener('click', () => show(current + 1));
 })();
+
+// Language changes update the calendar presentation without requests or selection changes.
+document.addEventListener('language-changed', () => {
+    if (dateWindow && datesGrid.querySelector('.date-button')) renderDates();
+    if (bookingData.date) bookingData.dateLabel = parseCalendarDate(bookingData.date).toLocaleDateString(PublicI18n.locale(), {day:'numeric', month:'short'});
+    updateBookingSummary();
+    if (bookingConfirmed) showBookingMessage(`Готово! Вы записаны к мастеру ${bookingData.master} на ${bookingData.dateLabel} в ${bookingData.time}.`, 'success');
+});

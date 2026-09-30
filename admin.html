@@ -9,7 +9,8 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>MANOR HOUSE — Admin</title>
+    <title>MANOR HOUSE — Admin / CRM</title>
+    <meta name="description" content="Управление записями">
 
     <link rel="icon" type="image/png" href="/static/images/admin-favicon.png">
 
@@ -316,6 +317,7 @@
                         <div class="search-box">
 
                             <input
+                                aria-label="Поиск"
                                 id="booking-search"
                                 type="search"
                                 placeholder="Имя или телефон..."
@@ -486,7 +488,7 @@
 
     
 
-<dialog id="catalog-dialog" class="catalog-dialog">
+<dialog id="catalog-dialog" class="catalog-dialog" aria-labelledby="catalog-editor-title">
     <form id="catalog-form">
         <h2 id="catalog-editor-title">Редактирование</h2>
         <fieldset id="catalog-fields">
@@ -519,6 +521,7 @@
         <button id="crm-comment-save" type="submit">Сохранить комментарий</button>
     </form>
 </dialog>
+<script src="admin-i18n.js"></script>
 <script src="admin.js"></script>
 </body>
 

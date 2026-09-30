@@ -111,9 +111,9 @@ function formatDate(dateValue) {
 
 function getStatusLabel(status) {
     const labels = {
-        confirmed: "Подтверждена",
-        completed: "Выполнена",
-        cancelled: "Отменена"
+        confirmed: (AdminI18n.mark("Подтверждена")),
+        completed: (AdminI18n.mark("Выполнена")),
+        cancelled: (AdminI18n.mark("Отменена"))
     };
 
     return labels[status] || status;
@@ -282,11 +282,11 @@ function renderBookings() {
         bookingsList.innerHTML = `
             <div class="empty-state">
                 <strong>
-                    Записей не найдено
+                    ${AdminI18n.mark("Записей не найдено")}
                 </strong>
 
                 <span>
-                    Измените фильтры или поиск.
+                    ${AdminI18n.mark("Измените фильтры или поиск.")}
                 </span>
             </div>
         `;
@@ -328,7 +328,7 @@ function renderBookings() {
                         </strong>
 
                         <span>
-                            Мастер
+                            ${AdminI18n.mark("Мастер")}
                         </span>
 
                     </div>
@@ -340,8 +340,8 @@ function renderBookings() {
                         </strong>
 
                         <span>
-                            ${escapeBookingHtml(booking.service_price)} грн ·
-                            ${escapeBookingHtml(booking.service_duration)} мин.
+                            ${escapeBookingHtml(booking.service_price)} ${AdminI18n.mark("грн ·")}
+                            ${escapeBookingHtml(booking.service_duration)} ${AdminI18n.mark("мин.")}
                         </span>
 
                     </div>
@@ -358,7 +358,7 @@ function renderBookings() {
                         </span>
 
                         <div class="booking-actions">
-                            <button type="button" class="crm-comment-button" data-booking-comment="${escapeBookingHtml(booking.id)}">${booking.comment ? 'Комментарий •' : '+ Комментарий'}</button>
+                            <button type="button" class="crm-comment-button" data-booking-comment="${escapeBookingHtml(booking.id)}">${booking.comment ? (AdminI18n.mark("Комментарий •")) : (AdminI18n.mark("+ Комментарий"))}</button>
 
                             ${
                                 booking.status ===
@@ -369,7 +369,7 @@ function renderBookings() {
                                             data-reschedule="true"
                                             type="button"
                                         >
-                                            Перенести
+                                            ${AdminI18n.mark("Перенести")}
                                         </button>
 
                                         <button
@@ -377,7 +377,7 @@ function renderBookings() {
                                             data-status="completed"
                                             type="button"
                                         >
-                                            Выполнена
+                                            ${AdminI18n.mark("Выполнена")}
                                         </button>
 
                                         <button
@@ -385,7 +385,7 @@ function renderBookings() {
                                             data-status="cancelled"
                                             type="button"
                                         >
-                                            Отменить
+                                            ${AdminI18n.mark("Отменить")}
                                         </button>
                                     `
                                     : ""
@@ -425,7 +425,7 @@ async function checkAuthentication() {
 
 async function login(password) {
     loginMessage.textContent =
-        "Проверяем...";
+        (AdminI18n.mark("Проверяем..."));
 
     try {
         const response = await fetch(
@@ -449,8 +449,8 @@ async function login(password) {
 
         if (!response.ok) {
             loginMessage.textContent =
-                data.message ||
-                "Не удалось выполнить вход.";
+                AdminI18n.known(data.message) ||
+                (AdminI18n.mark("Не удалось выполнить вход."));
 
             return;
         }
@@ -465,7 +465,7 @@ async function login(password) {
         console.error(error);
 
         loginMessage.textContent =
-            "Ошибка соединения с сервером.";
+            (AdminI18n.mark("Ошибка соединения с сервером."));
     }
 }
 
@@ -501,7 +501,7 @@ async function loadBookings({ silent = false } = {}) {
         return loadBookings({silent});
     }
     if (silent && (!bookingsAuthenticated || document.visibilityState !== 'visible')) return false;
-    if (!silent) bookingsList.textContent = 'Загрузка записей...';
+    if (!silent) bookingsList.textContent = (AdminI18n.mark("Загрузка записей..."));
     const controller = new AbortController();
     bookingsController = controller;
     const timeout = setTimeout(() => controller.abort(), 15000);
@@ -515,7 +515,7 @@ async function loadBookings({ silent = false } = {}) {
             if (response.status === 401) { showLogin(); return false; }
             const data = await response.json();
             if (epoch !== bookingsEpoch) return false;
-            if (!response.ok || !Array.isArray(data.bookings)) throw new Error(data.message || 'Не удалось загрузить записи.');
+            if (!response.ok || !Array.isArray(data.bookings)) throw new Error(AdminI18n.known(data.message) || (AdminI18n.mark("Не удалось загрузить записи.")));
             // Do not overwrite a local status mutation with a GET started before it.
             if (silent && previousData !== JSON.stringify(bookings)) return true;
             if (!silent || JSON.stringify(data.bookings) !== JSON.stringify(bookings)) {
@@ -541,7 +541,7 @@ async function loadBookings({ silent = false } = {}) {
             if (epoch !== bookingsEpoch) return false;
             if (!silent) {
                 console.error(error);
-                bookingsList.textContent = 'Не удалось загрузить записи.';
+                bookingsList.textContent = (AdminI18n.mark("Не удалось загрузить записи."));
             }
             return false;
         } finally {
@@ -585,13 +585,13 @@ async function changeStatus(
 
         if (response.status === 401) {
             showLogin();
-            throw new Error("Сессия истекла. Войдите снова.");
+            throw new Error((AdminI18n.mark("Сессия истекла. Войдите снова.")));
         }
 
         if (!response.ok) {
             throw new Error(
-                data.message ||
-                "Не удалось изменить статус."
+                AdminI18n.known(data.message) ||
+                (AdminI18n.mark("Не удалось изменить статус."))
             );
         }
 
@@ -626,7 +626,7 @@ loginForm.addEventListener(
 
         if (!password) {
             loginMessage.textContent =
-                "Введите пароль.";
+                (AdminI18n.mark("Введите пароль."));
 
             return;
         }
@@ -727,18 +727,18 @@ bookingsList.addEventListener(
         if (!booking || !["cancelled", "completed"].includes(status)) return;
         const cancelling = status === "cancelled";
         openConfirmation({
-            title: cancelling ? "Отменить запись?" : "Отметить запись выполненной?",
+            title: cancelling ? (AdminI18n.mark("Отменить запись?")) : (AdminI18n.mark("Отметить запись выполненной?")),
             description: cancelling
-                ? "Время снова станет доступно для клиентов."
-                : "Запись будет отмечена как выполненная.",
+                ? (AdminI18n.mark("Время снова станет доступно для клиентов."))
+                : (AdminI18n.mark("Запись будет отмечена как выполненная.")),
             details: [
-                ["Клиент", booking.client_name],
-                ["Дата", booking.booking_date ? formatDate(booking.booking_date) : ""],
-                ["Время", booking.booking_time],
-                ["Мастер", booking.barber_name]
+                [(AdminI18n.mark("Клиент")), booking.client_name],
+                [(AdminI18n.mark("Дата")), booking.booking_date ? formatDate(booking.booking_date) : ""],
+                [(AdminI18n.mark("Время")), booking.booking_time],
+                [(AdminI18n.mark("Мастер")), booking.barber_name]
             ],
-            confirmLabel: cancelling ? "Отменить запись" : "Отметить выполненной",
-            busyLabel: cancelling ? "Отменяем…" : "Сохраняем…",
+            confirmLabel: cancelling ? (AdminI18n.mark("Отменить запись")) : (AdminI18n.mark("Отметить выполненной")),
+            busyLabel: cancelling ? (AdminI18n.mark("Отменяем…")) : (AdminI18n.mark("Сохраняем…")),
             onConfirm: () => changeStatus(bookingId, status)
         });
     }
@@ -788,20 +788,20 @@ function updateBookingSummary() {
     const service = bookingServices.find(item => item.name === serviceSelect.value);
     createButton.disabled = bookingBusy || bookingSaved || !selectedTime;
     bookingSummary.textContent = service && barberSelect.value && selectedTime
-        ? `${service.name} · ${barberSelect.value}\n${formatDate(bookingDateInput.value)} · ${selectedTime} · ${service.price} грн · ${service.duration} мин.`
-        : "Выберите услугу, мастера, дату и свободное время.";
+        ? `${service.name} · ${barberSelect.value}\n${formatDate(bookingDateInput.value)} · ${selectedTime} · ${service.price} ${AdminI18n.mark("грн ·")} ${service.duration} ${AdminI18n.mark("мин.")}`
+        : (AdminI18n.mark("Выберите услугу, мастера, дату и свободное время."));
 }
 
 async function bookingJson(url, options = {}) {
     const response = await fetch(url, { credentials: "same-origin", cache: "no-store", ...options });
     if (response.status === 401) {
         showLogin();
-        loginMessage.textContent = "Сессия истекла. Войдите снова.";
-        throw new Error("Требуется авторизация.");
+        loginMessage.textContent = (AdminI18n.mark("Сессия истекла. Войдите снова."));
+        throw new Error((AdminI18n.mark("Требуется авторизация.")));
     }
     const data = await response.json();
     if (!response.ok) {
-        const error = new Error(data.message || "Не удалось выполнить запрос.");
+        const error = new Error(AdminI18n.known(data.message) || (AdminI18n.mark("Не удалось выполнить запрос.")));
         error.status = response.status;
         error.data = data;
         error.conflicts = Array.isArray(data.conflicts) ? data.conflicts : [];
@@ -820,22 +820,22 @@ async function loadBookingOptions() {
     optionsReady = false;
     bookingFields.disabled = true;
     retryButton.hidden = true;
-    bookingMessage.textContent = "Загружаем услуги и мастеров…";
+    bookingMessage.textContent = (AdminI18n.mark("Загружаем услуги и мастеров…"));
     try {
         const [services, barbers, window] = await Promise.all([
             bookingJson("/api/services"), bookingJson("/api/barbers"), bookingJson("/api/booking-window")
         ]);
         if (version !== modalVersion || !bookingModal.open) return;
         if (!Array.isArray(services) || !Array.isArray(barbers) || !services.length || !barbers.length) {
-            throw new Error("Нет доступных услуг или мастеров.");
+            throw new Error((AdminI18n.mark("Нет доступных услуг или мастеров.")));
         }
         bookingDateInput.min = window.min_date;
         bookingDateInput.max = window.max_date;
         bookingDateInput.value = window.min_date;
-        bookingDateInput.title = "Запись от сегодня до 30 дней вперёд включительно";
+        bookingDateInput.title = (AdminI18n.mark("Запись от сегодня до 30 дней вперёд включительно"));
         bookingServices = services;
-        fillBookingSelect(serviceSelect, "Выберите услугу", services, item => `${item.name} — ${item.price} грн`);
-        fillBookingSelect(barberSelect, "Выберите мастера", barbers, item => item.name);
+        fillBookingSelect(serviceSelect, (AdminI18n.mark("Выберите услугу")), services, item => `${item.name} — ${item.price} ${AdminI18n.mark("грн")}`);
+        fillBookingSelect(barberSelect, (AdminI18n.mark("Выберите мастера")), barbers, item => item.name);
         optionsReady = true;
         bookingMessage.textContent = "";
 
@@ -849,7 +849,7 @@ async function loadBookingOptions() {
         }
     } catch (error) {
         if (version !== modalVersion) return;
-        bookingMessage.textContent = error.message || "Не удалось загрузить услуги и мастеров.";
+        bookingMessage.textContent = error.message || (AdminI18n.mark("Не удалось загрузить услуги и мастеров."));
         retryButton.hidden = false;
     } finally {
         if (version === modalVersion) bookingFields.disabled = false;
@@ -862,14 +862,14 @@ async function loadBookingAvailability() {
     retryButton.hidden = true;
     updateBookingSummary();
     if (!optionsReady || !serviceSelect.value || !barberSelect.value || !bookingDateInput.value) {
-        timeSlots.textContent = "Сначала выберите услугу, мастера и дату.";
+        timeSlots.textContent = (AdminI18n.mark("Сначала выберите услугу, мастера и дату."));
         return;
     }
     if (!bookingDateInput.checkValidity()) {
-        timeSlots.textContent = "Выберите дату от сегодня до 30 дней вперёд включительно.";
+        timeSlots.textContent = (AdminI18n.mark("Выберите дату от сегодня до 30 дней вперёд включительно."));
         return;
     }
-    timeSlots.textContent = "Проверяем свободное время…";
+    timeSlots.textContent = (AdminI18n.mark("Проверяем свободное время…"));
     const params = new URLSearchParams({service: serviceSelect.value, barber: barberSelect.value, date: bookingDateInput.value});
     if (bookingMode === "reschedule" && rescheduleBooking) {
         params.set("exclude_booking_id", String(rescheduleBooking.id));
@@ -877,9 +877,9 @@ async function loadBookingAvailability() {
     try {
         const data = await bookingJson(`/api/availability?${params}`);
         if (version !== requestVersion || !bookingModal.open) return;
-        if (!Array.isArray(data.available_times)) throw new Error("Некорректный ответ расписания.");
+        if (!Array.isArray(data.available_times)) throw new Error((AdminI18n.mark("Некорректный ответ расписания.")));
         timeSlots.replaceChildren();
-        if (!data.available_times.length) timeSlots.textContent = "На эту дату свободного времени нет.";
+        if (!data.available_times.length) timeSlots.textContent = (AdminI18n.mark("На эту дату свободного времени нет."));
         data.available_times.forEach(time => {
             const button = document.createElement("button");
             button.type = "button";
@@ -891,7 +891,7 @@ async function loadBookingAvailability() {
         });
     } catch (error) {
         if (version !== requestVersion) return;
-        timeSlots.textContent = error.message || "Не удалось загрузить свободное время.";
+        timeSlots.textContent = error.message || (AdminI18n.mark("Не удалось загрузить свободное время."));
         retryButton.hidden = false;
     }
 }
@@ -907,12 +907,12 @@ function openNewBooking(prefillClient = null) {
     document.querySelector("#admin-client-phone").readOnly = false;
     bookingSaved = false;
     selectedTime = "";
-    createButton.textContent = "Создать запись";
+    createButton.textContent = (AdminI18n.mark("Создать запись"));
     bookingMessage.classList.remove("success");
     bookingMessage.textContent = "";
     bookingDateInput.min = getLocalDateString(new Date());
     bookingDateInput.value = bookingDateInput.min;
-    timeSlots.textContent = "Сначала выберите услугу, мастера и дату.";
+    timeSlots.textContent = (AdminI18n.mark("Сначала выберите услугу, мастера и дату."));
 
     if (prefillClient) {
         document.querySelector("#admin-client-name").value = prefillClient.name || "";
@@ -941,14 +941,14 @@ async function openRescheduleBooking(booking) {
     bookingForm.reset();
     bookingSaved = false;
     selectedTime = "";
-    createButton.textContent = "Перенести запись";
+    createButton.textContent = (AdminI18n.mark("Перенести запись"));
     bookingMessage.classList.remove("success");
     bookingMessage.textContent = "";
     document.querySelector("#admin-client-name").value = booking.client_name || "";
     document.querySelector("#admin-client-phone").value = booking.client_phone || "";
     document.querySelector("#admin-client-name").readOnly = true;
     document.querySelector("#admin-client-phone").readOnly = true;
-    timeSlots.textContent = "Загружаем доступное время…";
+    timeSlots.textContent = (AdminI18n.mark("Загружаем доступное время…"));
     updateBookingSummary();
 
     oldBodyOverflow = document.body.style.overflow;
@@ -985,12 +985,12 @@ bookingForm.addEventListener("submit", async event => {
     const name = document.querySelector("#admin-client-name").value.trim();
     const phone = document.querySelector("#admin-client-phone").value.trim();
     if (name.length < 2 || !/^\+?\d{10,15}$/.test(phone.replace(/[\s()-]/g, ""))) {
-        bookingMessage.textContent = "Введите имя (от двух символов) и корректный телефон (10–15 цифр).";
+        bookingMessage.textContent = (AdminI18n.mark("Введите имя (от двух символов) и корректный телефон (10–15 цифр)."));
         return;
     }
     bookingBusy = true;
     bookingFields.disabled = true;
-    createButton.textContent = bookingMode === "reschedule" ? "Переносим запись…" : "Создаём запись…";
+    createButton.textContent = bookingMode === "reschedule" ? (AdminI18n.mark("Переносим запись…")) : (AdminI18n.mark("Создаём запись…"));
     bookingMessage.textContent = "";
     updateBookingSummary();
     try {
@@ -1014,29 +1014,29 @@ bookingForm.addEventListener("submit", async event => {
         clientsLoaded = false;
         bookingMessage.classList.add("success");
         bookingMessage.textContent = moving
-            ? `Запись №${data.booking_id} перенесена. Обновляем список…`
-            : `Запись №${data.booking_id} создана. Обновляем список…`;
+            ? `${AdminI18n.mark("Запись №")}${data.booking_id} ${AdminI18n.mark("перенесена. Обновляем список…")}`
+            : `${AdminI18n.mark("Запись №")}${data.booking_id} ${AdminI18n.mark("создана. Обновляем список…")}`;
         const refreshed = await loadBookings();
         if (!bookingModal.open) return;
         bookingMessage.textContent = moving
             ? (refreshed
-                ? `Запись №${data.booking_id} перенесена. Список и CRM обновлены.`
-                : `Запись №${data.booking_id} перенесена, но список не обновился. Обновите страницу.`)
+                ? `${AdminI18n.mark("Запись №")}${data.booking_id} ${AdminI18n.mark("перенесена. Список и CRM обновлены.")}`
+                : `${AdminI18n.mark("Запись №")}${data.booking_id} ${AdminI18n.mark("перенесена, но список не обновился. Обновите страницу.")}`)
             : (refreshed
-                ? `Запись №${data.booking_id} создана. Список и статистика обновлены. Текущие фильтры сохранены.`
-                : `Запись №${data.booking_id} создана, но список не обновился. Обновите страницу; повторно создавать запись не нужно.`);
+                ? `${AdminI18n.mark("Запись №")}${data.booking_id} ${AdminI18n.mark("создана. Список и статистика обновлены. Текущие фильтры сохранены.")}`
+                : `${AdminI18n.mark("Запись №")}${data.booking_id} ${AdminI18n.mark("создана, но список не обновился. Обновите страницу; повторно создавать запись не нужно.")}`);
     } catch (error) {
         if (!bookingModal.open) return;
         bookingMessage.textContent = error.status
             ? error.message
-            : "Не удалось получить ответ сервера. Перед повторной отправкой проверьте список записей: запись могла сохраниться.";
+            : (AdminI18n.mark("Не удалось получить ответ сервера. Перед повторной отправкой проверьте список записей: запись могла сохраниться."));
         if (error.status === 409) await loadBookingAvailability();
     } finally {
         bookingBusy = false;
         bookingFields.disabled = bookingSaved;
         createButton.textContent = bookingMode === "reschedule"
-            ? (bookingSaved ? "Запись перенесена" : "Перенести запись")
-            : (bookingSaved ? "Запись создана" : "Создать запись");
+            ? (bookingSaved ? (AdminI18n.mark("Запись перенесена")) : (AdminI18n.mark("Перенести запись")))
+            : (bookingSaved ? (AdminI18n.mark("Запись создана")) : (AdminI18n.mark("Создать запись")));
         updateBookingSummary();
     }
 });
@@ -1065,9 +1065,9 @@ function openConfirmation(options) {
     confirmationMessage.textContent = "";
     confirmationConflicts.replaceChildren();
     confirmationConflicts.hidden = true;
-    confirmationBack.textContent = "Назад";
+    confirmationBack.textContent = (AdminI18n.mark("Назад"));
     confirmationSubmit.hidden = false;
-    confirmationSubmit.textContent = options.confirmLabel || "Подтвердить";
+    confirmationSubmit.textContent = options.confirmLabel || (AdminI18n.mark("Подтвердить"));
     confirmationDetails.replaceChildren();
     (options.details || []).forEach(([label, value]) => {
         if (value == null || value === "") return;
@@ -1090,12 +1090,12 @@ function showScheduleConflict(error) {
     const conflicts = Array.isArray(error.conflicts) ? error.conflicts : [];
     if (error.status !== 409 || !conflicts.length) return false;
 
-    confirmationTitle.textContent = "Нельзя сохранить изменение";
+    confirmationTitle.textContent = (AdminI18n.mark("Нельзя сохранить изменение"));
     confirmationDescription.textContent =
         conflicts.length === 1
-            ? "В выбранном времени уже есть подтверждённая запись. Сначала отмените или перенесите её."
-            : `Найдено ${conflicts.length} подтверждённых записей. Сначала отмените или перенесите их.`;
-    confirmationMessage.textContent = "Изменения расписания не сохранены.";
+            ? (AdminI18n.mark("В выбранном времени уже есть подтверждённая запись. Сначала отмените или перенесите её."))
+            : `${AdminI18n.mark("Найдено")} ${conflicts.length} ${AdminI18n.mark("подтверждённых записей. Сначала отмените или перенесите их.")}`;
+    confirmationMessage.textContent = (AdminI18n.mark("Изменения расписания не сохранены."));
     confirmationDetails.hidden = true;
     confirmationConflicts.replaceChildren();
 
@@ -1104,7 +1104,7 @@ function showScheduleConflict(error) {
         card.className = "confirmation-conflict-card";
 
         const title = document.createElement("strong");
-        title.textContent = `${conflict.client_name || "Клиент"} · ${conflict.booking_time || ""}`;
+        title.textContent = `${conflict.client_name || (AdminI18n.mark("Клиент"))} · ${conflict.booking_time || ""}`;
 
         const date = document.createElement("span");
         date.textContent = conflict.booking_date
@@ -1114,13 +1114,13 @@ function showScheduleConflict(error) {
         const service = document.createElement("span");
         service.textContent = [
             conflict.service_name,
-            conflict.service_duration ? `${conflict.service_duration} мин.` : "",
+            conflict.service_duration ? `${conflict.service_duration} ${AdminI18n.mark("мин.")}` : "",
             conflict.client_phone
         ].filter(Boolean).join(" · ");
 
         const reason = document.createElement("span");
         reason.className = "conflict-reason";
-        reason.textContent = conflict.reason || "Запись пересекается с новым расписанием.";
+        reason.textContent = AdminI18n.known(conflict.reason) || (AdminI18n.mark("Запись пересекается с новым расписанием."));
 
         card.append(title, date, service, reason);
         confirmationConflicts.append(card);
@@ -1128,7 +1128,7 @@ function showScheduleConflict(error) {
 
     confirmationConflicts.hidden = false;
     confirmationSubmit.hidden = true;
-    confirmationBack.textContent = "Понятно";
+    confirmationBack.textContent = (AdminI18n.mark("Понятно"));
     return true;
 }
 
@@ -1183,8 +1183,8 @@ confirmationSubmit.addEventListener("click", async () => {
     confirmationBack.disabled = true;
     confirmationSubmit.disabled = true;
     confirmationModal.setAttribute("aria-busy", "true");
-    confirmationSubmit.textContent = options.busyLabel || "Выполняем…";
-    confirmationMessage.textContent = "Сохраняем изменения…";
+    confirmationSubmit.textContent = options.busyLabel || (AdminI18n.mark("Выполняем…"));
+    confirmationMessage.textContent = (AdminI18n.mark("Сохраняем изменения…"));
     try {
         await options.onConfirm();
         confirmationBusy = false;
@@ -1193,7 +1193,7 @@ confirmationSubmit.addEventListener("click", async () => {
         if (confirmationModal.open) {
             if (!showScheduleConflict(error)) {
                 confirmationMessage.textContent =
-                    error.message || "Не удалось выполнить действие. Попробуйте ещё раз.";
+                    error.message || (AdminI18n.mark("Не удалось выполнить действие. Попробуйте ещё раз."));
             }
         }
     } finally {
@@ -1201,7 +1201,7 @@ confirmationSubmit.addEventListener("click", async () => {
         confirmationBack.disabled = false;
         confirmationSubmit.disabled = false;
         confirmationModal.removeAttribute("aria-busy");
-        confirmationSubmit.textContent = options.confirmLabel || "Подтвердить";
+        confirmationSubmit.textContent = options.confirmLabel || (AdminI18n.mark("Подтвердить"));
         if (confirmationModal.open) confirmationBack.focus();
     }
 });
@@ -1218,7 +1218,7 @@ const weeklyForm = document.querySelector('#weekly-form');
 const exceptionForm = document.querySelector('#exception-form');
 const blockForm = document.querySelector('#block-form');
 const scheduleEvents = document.querySelector('#schedule-events');
-const weekdayNames = ['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'];
+const weekdayNames = [(AdminI18n.mark("Понедельник")),(AdminI18n.mark("Вторник")),(AdminI18n.mark("Среда")),(AdminI18n.mark("Четверг")),(AdminI18n.mark("Пятница")),(AdminI18n.mark("Суббота")),(AdminI18n.mark("Воскресенье"))];
 let scheduleVersion = 0;
 let scheduleBusy = false;
 let scheduleDirty = false;
@@ -1279,7 +1279,7 @@ function scheduleTab(open) {
 }
 
 function formatMoney(value) {
-    return `${new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 2}).format(Number(value) || 0)} грн`;
+    return `${new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 2}).format(Number(value) || 0)} ${AdminI18n.mark("грн")}`;
 }
 
 function renderClients() {
@@ -1300,10 +1300,10 @@ function renderClients() {
     clientsCancelled.textContent = segment.reduce((sum, client) => sum + Number(client.cancelled || 0), 0);
     clientsRevenue.textContent = formatMoney(segment.reduce((sum, client) => sum + Number(client.total_spent || 0), 0));
     if (!visible.length) {
-        const title = archived ? 'Архив пуст' : 'Клиенты не найдены';
+        const title = archived ? (AdminI18n.mark("Архив пуст")) : (AdminI18n.mark("Клиенты не найдены"));
         const hint = archived
-            ? 'Архивированные клиенты появятся здесь.'
-            : 'Измените поиск или создайте первую запись.';
+            ? (AdminI18n.mark("Архивированные клиенты появятся здесь."))
+            : (AdminI18n.mark("Измените поиск или создайте первую запись."));
         clientsList.innerHTML = `<div class="empty-state"><strong>${title}</strong><span>${hint}</span></div>`;
         return;
     }
@@ -1312,12 +1312,12 @@ function renderClients() {
             <div>
                 <strong>${escapeBookingHtml(client.name)}</strong>
                 <small>${escapeBookingHtml(client.phone)}</small>
-                ${client.archived ? '<span class="client-archive-badge">В архиве</span>' : ''}
+                ${client.archived ? ("<span class=\"client-archive-badge\">" + AdminI18n.mark("В архиве") + "</span>") : ''}
             </div>
-            <div class="client-metric"><span>Записей</span><b>${escapeBookingHtml(client.total_bookings)}</b></div>
-            <div class="client-metric"><span>Визитов</span><b>${escapeBookingHtml(client.completed)}</b></div>
-            <div class="client-metric"><span>Потрачено</span><b>${escapeBookingHtml(formatMoney(client.total_spent))}</b></div>
-            <button class="client-open" type="button" data-client-key="${escapeBookingHtml(client.key)}">Открыть</button>
+            <div class="client-metric"><span>${AdminI18n.mark("Записей")}</span><b>${escapeBookingHtml(client.total_bookings)}</b></div>
+            <div class="client-metric"><span>${AdminI18n.mark("Визитов")}</span><b>${escapeBookingHtml(client.completed)}</b></div>
+            <div class="client-metric"><span>${AdminI18n.mark("Потрачено")}</span><b>${escapeBookingHtml(formatMoney(client.total_spent))}</b></div>
+            <button class="client-open" type="button" data-client-key="${escapeBookingHtml(client.key)}">${AdminI18n.mark("Открыть")}</button>
         </article>
     `).join('');
 }
@@ -1326,7 +1326,7 @@ async function loadClients(force = false) {
         renderClients();
         return;
     }
-    clientsMessage.textContent = 'Загружаем клиентскую базу…';
+    clientsMessage.textContent = (AdminI18n.mark("Загружаем клиентскую базу…"));
     try {
         const response = await fetch('/api/admin/clients');
         const data = await response.json();
@@ -1334,14 +1334,14 @@ async function loadClients(force = false) {
             showLogin();
             return;
         }
-        if (!response.ok) throw new Error(data.message || 'Не удалось загрузить клиентов.');
+        if (!response.ok) throw new Error(AdminI18n.known(data.message) || (AdminI18n.mark("Не удалось загрузить клиентов.")));
         crmClients = Array.isArray(data.clients) ? data.clients : [];
         clientsLoaded = true;
         clientsMessage.textContent = '';
         renderClients();
     } catch (error) {
         console.error(error);
-        clientsMessage.textContent = error.message || 'Не удалось загрузить клиентов.';
+        clientsMessage.textContent = error.message || (AdminI18n.mark("Не удалось загрузить клиентов."));
     }
 }
 
@@ -1353,34 +1353,34 @@ function openClient(client) {
             <div>
                 <h3>${escapeBookingHtml(client.name)}</h3>
                 <p>${escapeBookingHtml(client.phone)}</p>
-                <p>Последний визит: <strong>${client.last_visit ? escapeBookingHtml(formatDate(client.last_visit)) : 'ещё не было'}</strong></p>
-                <p>Частый мастер: <strong>${escapeBookingHtml(client.favorite_barber || '—')}</strong></p>
-                <p class="client-archive-state">Статус: <strong>${client.archived ? 'в архиве' : 'активный'}</strong></p>
+                <p>${AdminI18n.mark("Последний визит:")} <strong>${client.last_visit ? escapeBookingHtml(formatDate(client.last_visit)) : (AdminI18n.mark("ещё не было"))}</strong></p>
+                <p>${AdminI18n.mark("Частый мастер:")} <strong>${escapeBookingHtml(client.favorite_barber || '—')}</strong></p>
+                <p class="client-archive-state">${AdminI18n.mark("Статус:")} <strong>${client.archived ? (AdminI18n.mark("в архиве")) : (AdminI18n.mark("активный"))}</strong></p>
                 <div class="client-profile-actions">
-                    ${client.archived ? '' : '<button class="new-booking-button client-repeat-booking" type="button" data-repeat-booking="true">+ Новая запись</button>'}
-                    <button class="client-archive-action" type="button" data-client-archive="true" disabled>${client.archived ? 'Восстановить' : 'Архивировать'}</button>
+                    ${client.archived ? '' : ("<button class=\"new-booking-button client-repeat-booking\" type=\"button\" data-repeat-booking=\"true\">" + AdminI18n.mark("+ Новая запись") + "</button>")}
+                    <button class="client-archive-action" type="button" data-client-archive="true" disabled>${client.archived ? (AdminI18n.mark("Восстановить")) : (AdminI18n.mark("Архивировать"))}</button>
                 </div>
             </div>
             <div class="client-profile-stats">
-                <div><span>Всего записей</span><strong>${escapeBookingHtml(client.total_bookings)}</strong></div>
-                <div><span>Выполнено</span><strong>${escapeBookingHtml(client.completed)}</strong></div>
-                <div><span>Отменено</span><strong>${escapeBookingHtml(client.cancelled)}</strong></div>
-                <div><span>Сумма визитов</span><strong>${escapeBookingHtml(formatMoney(client.total_spent))}</strong></div>
+                <div><span>${AdminI18n.mark("Всего записей")}</span><strong>${escapeBookingHtml(client.total_bookings)}</strong></div>
+                <div><span>${AdminI18n.mark("Выполнено")}</span><strong>${escapeBookingHtml(client.completed)}</strong></div>
+                <div><span>${AdminI18n.mark("Отменено")}</span><strong>${escapeBookingHtml(client.cancelled)}</strong></div>
+                <div><span>${AdminI18n.mark("Сумма визитов")}</span><strong>${escapeBookingHtml(formatMoney(client.total_spent))}</strong></div>
             </div>
         </section>
         <div id="crm-profile-editor"></div>
-        <h3 class="client-history-title">История записей</h3>
+        <h3 class="client-history-title">${AdminI18n.mark("История записей")}</h3>
         <div class="client-history">
             ${history.map(item => `
                 <article class="client-history-item">
                     <div class="history-date">${escapeBookingHtml(formatDate(item.date))}</div>
                     <strong>${escapeBookingHtml(item.time)}</strong>
-                    <div>${escapeBookingHtml(item.service)}<small>${escapeBookingHtml(item.duration)} мин. · ${escapeBookingHtml(formatMoney(item.price))}</small></div>
-                    <div>${escapeBookingHtml(item.barber)}<small>Мастер</small></div>
+                    <div>${escapeBookingHtml(item.service)}<small>${escapeBookingHtml(item.duration)} ${AdminI18n.mark("мин. ·")} ${escapeBookingHtml(formatMoney(item.price))}</small></div>
+                    <div>${escapeBookingHtml(item.barber)}<small>${AdminI18n.mark("Мастер")}</small></div>
                     <span class="status status-${escapeBookingHtml(item.status)}">${escapeBookingHtml(getStatusLabel(item.status))}</span>
-                    <div class="crm-history-comment"><p data-comment-preview="${escapeBookingHtml(item.id)}">${escapeBookingHtml(item.comment || 'Комментарий пока не добавлен')}</p><button type="button" class="crm-comment-button" data-booking-comment="${escapeBookingHtml(item.id)}">Редактировать комментарий</button></div>
+                    <div class="crm-history-comment"><p data-comment-preview="${escapeBookingHtml(item.id)}">${escapeBookingHtml(item.comment || (AdminI18n.mark("Комментарий пока не добавлен")))}</p><button type="button" class="crm-comment-button" data-booking-comment="${escapeBookingHtml(item.id)}">${AdminI18n.mark("Редактировать комментарий")}</button></div>
                 </article>
-            `).join('') || '<div class="empty-state">История пуста.</div>'}
+            `).join('') || ("<div class=\"empty-state\">" + AdminI18n.mark("История пуста.") + "</div>")}
         </div>
     `;
     clientModal.showModal();
@@ -1399,22 +1399,22 @@ function requestClientArchive(client) {
     if (crmProfileBusy) return;
     if (crmProfileDirty) {
         const message = document.querySelector('#crm-profile-message');
-        if (message) message.textContent = 'Сначала сохраните заметку и теги или отмените изменения.';
+        if (message) message.textContent = (AdminI18n.mark("Сначала сохраните заметку и теги или отмените изменения."));
         return;
     }
     const nextArchived = !Boolean(client.archived);
     openConfirmation({
-        title: nextArchived ? 'Архивировать клиента?' : 'Восстановить клиента?',
+        title: nextArchived ? (AdminI18n.mark("Архивировать клиента?")) : (AdminI18n.mark("Восстановить клиента?")),
         description: nextArchived
-            ? 'Клиент исчезнет из активного списка и раздела «Записи клиентов». История записей и данные аналитики сохранятся.'
-            : 'Клиент снова появится в активном списке, а его записи вернутся в раздел «Записи клиентов».',
+            ? (AdminI18n.mark("Клиент исчезнет из активного списка и раздела «Записи клиентов». История записей и данные аналитики сохранятся."))
+            : (AdminI18n.mark("Клиент снова появится в активном списке, а его записи вернутся в раздел «Записи клиентов».")),
         details: [
-            ['Клиент', client.name],
-            ['Телефон', client.phone],
-            ['Записей', client.total_bookings]
+            [(AdminI18n.mark("Клиент")), client.name],
+            [(AdminI18n.mark("Телефон")), client.phone],
+            [(AdminI18n.mark("Записей")), client.total_bookings]
         ],
-        confirmLabel: nextArchived ? 'Архивировать' : 'Восстановить',
-        busyLabel: nextArchived ? 'Архивируем…' : 'Восстанавливаем…',
+        confirmLabel: nextArchived ? (AdminI18n.mark("Архивировать")) : (AdminI18n.mark("Восстановить")),
+        busyLabel: nextArchived ? (AdminI18n.mark("Архивируем…")) : (AdminI18n.mark("Восстанавливаем…")),
         onConfirm: async () => {
             const data = await bookingJson(`/api/admin/clients/${encodeURIComponent(client.key)}/archive`, {
                 method: 'PATCH',
@@ -1463,14 +1463,14 @@ function renderSchedule(data) {
         row.className = 'weekly-row';
         row.dataset.weekday = day.weekday;
         row.innerHTML = `<strong>${weekdayNames[day.weekday]}</strong>
-            <label class="weekly-toggle"><input type="checkbox" ${day.working ? 'checked' : ''}><span>${day.working ? 'Рабочий' : 'Выходной'}</span></label>
-            <label>С<input type="time" name="start" required></label>
-            <label>До<input type="time" name="end" required></label>`;
+            <label class="weekly-toggle"><input type="checkbox" ${day.working ? 'checked' : ''}><span>${day.working ? (AdminI18n.mark("Рабочий")) : (AdminI18n.mark("Выходной"))}</span></label>
+            <label>${AdminI18n.mark("С")}<input type="time" name="start" required></label>
+            <label>${AdminI18n.mark("До")}<input type="time" name="end" required></label>`;
         row.querySelector('[name=start]').value = day.start || '10:00';
         row.querySelector('[name=end]').value = day.end || '19:00';
         row.querySelectorAll('[type=time]').forEach(el => el.disabled = !day.working);
-        row.querySelector('[type=checkbox]').setAttribute('aria-label',`${weekdayNames[day.weekday]}: рабочий день`);
-        row.querySelectorAll('[type=time]').forEach(el=>el.setAttribute('aria-label',`${weekdayNames[day.weekday]}: ${el.name==='start'?'начало':'окончание'}`));
+        row.querySelector('[type=checkbox]').setAttribute('aria-label',`${weekdayNames[day.weekday]}${AdminI18n.mark(": рабочий день")}`);
+        row.querySelectorAll('[type=time]').forEach(el=>el.setAttribute('aria-label',`${weekdayNames[day.weekday]}: ${el.name==='start'?(AdminI18n.mark("начало")):(AdminI18n.mark("окончание"))}`));
         rows.append(row);
     });
     [exceptionForm,blockForm].forEach(form=>{
@@ -1482,23 +1482,23 @@ function renderSchedule(data) {
         ...data.exceptions.map(item=>({...item,kind:'exceptions'})),
         ...data.blocks.map(item=>({...item,kind:'blocks'}))
     ].sort((a,b)=>a.date.localeCompare(b.date)||(a.start||'').localeCompare(b.start||''));
-    if (!events.length) scheduleEvents.textContent='Исключений и блокировок пока нет.';
+    if (!events.length) scheduleEvents.textContent=(AdminI18n.mark("Исключений и блокировок пока нет."));
     events.forEach(item=>{
         const row=document.createElement('div'); row.className='schedule-event';
         const body=document.createElement('div');
         const title=document.createElement('strong'); title.textContent=formatDate(item.date);
         const detail=document.createElement('p');
-        detail.textContent=item.kind==='blocks' ? `Блокировка · ${item.start}–${item.end}` : item.working ? `Особые часы · ${item.start}–${item.end}` : 'Выходной';
+        detail.textContent=item.kind==='blocks' ? `${AdminI18n.mark("Блокировка ·")} ${item.start}–${item.end}` : item.working ? `${AdminI18n.mark("Особые часы ·")} ${item.start}–${item.end}` : (AdminI18n.mark("Выходной"));
         body.append(title,detail);
         if(item.reason) { const reason=document.createElement('p'); reason.className='schedule-muted'; reason.textContent=item.reason; body.append(reason); }
-        const button=document.createElement('button'); button.type='button'; button.textContent='Удалить';
-        button.setAttribute('aria-label',`Удалить: ${title.textContent}, ${detail.textContent}`);
+        const button=document.createElement('button'); button.type='button'; button.textContent=(AdminI18n.mark("Удалить"));
+        button.setAttribute('aria-label',`${AdminI18n.mark("Удалить:")} ${AdminI18n.source(title)}, ${AdminI18n.source(detail)}`);
         button.addEventListener('click',()=>{
             if(scheduleBusy) return;
             const barber=scheduleLoadedBarber;
-            openConfirmation({title:'Удалить изменение расписания?',description:'Свободное время будет пересчитано. Подтверждённые записи сохранятся.',
-                details:[['Мастер',scheduleBarber.selectedOptions[0].textContent],['Дата',formatDate(item.date)],['Изменение',detail.textContent]],
-                confirmLabel:'Удалить',onConfirm:()=>saveSchedule(item.kind,'DELETE',item.kind==='blocks'?{id:item.id}:{date:item.date},barber)});
+            openConfirmation({title:(AdminI18n.mark("Удалить изменение расписания?")),description:(AdminI18n.mark("Свободное время будет пересчитано. Подтверждённые записи сохранятся.")),
+                details:[[(AdminI18n.mark("Мастер")),scheduleBarber.selectedOptions[0].textContent],[(AdminI18n.mark("Дата")),formatDate(item.date)],[(AdminI18n.mark("Изменение")),AdminI18n.source(detail)]],
+                confirmLabel:(AdminI18n.mark("Удалить")),onConfirm:()=>saveSchedule(item.kind,'DELETE',item.kind==='blocks'?{id:item.id}:{date:item.date},barber)});
         });
         row.append(body,button); scheduleEvents.append(row);
     });
@@ -1512,12 +1512,12 @@ async function loadSchedule() {
     scheduleContent.hidden=true;
     scheduleRetry.hidden=true;
     scheduleBarber.disabled=true;
-    scheduleNotice('Загружаем расписание…');
+    scheduleNotice((AdminI18n.mark("Загружаем расписание…")));
     try {
         if(!scheduleBarber.options.length) {
             const barbers=await bookingJson('/api/barbers');
             if(version!==scheduleVersion) return;
-            if(!Array.isArray(barbers)||!barbers.length) throw new Error('Мастера не найдены.');
+            if(!Array.isArray(barbers)||!barbers.length) throw new Error((AdminI18n.mark("Мастера не найдены.")));
             barbers.forEach(item=>scheduleBarber.add(new Option(item.name,String(item.id))));
         }
         const barber=scheduleBarber.value;
@@ -1528,7 +1528,7 @@ async function loadSchedule() {
         scheduleNotice('');
     } catch(error) {
         if(version!==scheduleVersion) return;
-        scheduleNotice(error.message || 'Не удалось загрузить расписание.',true);
+        scheduleNotice(error.message || (AdminI18n.mark("Не удалось загрузить расписание.")),true);
         scheduleRetry.hidden=false;
     } finally { if(version===scheduleVersion) scheduleBarber.disabled=false; }
 }
@@ -1537,7 +1537,7 @@ scheduleBarber.addEventListener('change',()=>{
     const next=scheduleBarber.value;
     if(scheduleDirty && scheduleLoadedBarber) {
         scheduleBarber.value=scheduleLoadedBarber;
-        openConfirmation({title:'Перейти к другому мастеру?',description:'Несохранённые изменения недели будут потеряны.',confirmLabel:'Перейти',onConfirm:async()=>{
+        openConfirmation({title:(AdminI18n.mark("Перейти к другому мастеру?")),description:(AdminI18n.mark("Несохранённые изменения недели будут потеряны.")),confirmLabel:(AdminI18n.mark("Перейти")),onConfirm:async()=>{
             scheduleBarber.value=next; await loadSchedule();
         }});
     } else loadSchedule();
@@ -1546,7 +1546,7 @@ weeklyForm.addEventListener('change',event=>{
     scheduleDirty=true;
     if(event.target.type==='checkbox') {
         const row=event.target.closest('.weekly-row');
-        row.querySelector('span').textContent=event.target.checked?'Рабочий':'Выходной';
+        row.querySelector('span').textContent=event.target.checked?(AdminI18n.mark("Рабочий")):(AdminI18n.mark("Выходной"));
         row.querySelectorAll('[type=time]').forEach(el=>el.disabled=!event.target.checked);
     }
 });
@@ -1557,13 +1557,13 @@ exceptionForm.elements.mode.addEventListener('change',()=>{
 });
 
 async function saveSchedule(kind,method,payload,barber=scheduleLoadedBarber) {
-    if(scheduleBusy || !barber) throw new Error('Дождитесь загрузки расписания.');
+    if(scheduleBusy || !barber) throw new Error((AdminI18n.mark("Дождитесь загрузки расписания.")));
     scheduleBusy=true;
     const version=scheduleVersion;
     const controls=[...schedulePanel.querySelectorAll('input,select,button')];
     const disabled=controls.map(el=>el.disabled);
     controls.forEach(el=>el.disabled=true);
-    scheduleNotice('Сохраняем изменения…');
+    scheduleNotice((AdminI18n.mark("Сохраняем изменения…")));
     try {
         const data=await bookingJson(`/api/admin/schedules/${barber}${kind?'/'+kind:''}`,{
             method,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
@@ -1575,10 +1575,10 @@ async function saveSchedule(kind,method,payload,barber=scheduleLoadedBarber) {
         if(draft) {
             renderSchedule({...data,weekly:draft}); scheduleDirty=true;
         }
-        scheduleNotice('Сохранено. Свободное время обновлено.');
+        scheduleNotice((AdminI18n.mark("Сохранено. Свободное время обновлено.")));
         if(bookingModal.open) loadBookingAvailability();
     } catch(error) {
-        if(version===scheduleVersion) scheduleNotice(error.message || 'Не удалось получить ответ. Повторите загрузку перед новой попыткой.',true);
+        if(version===scheduleVersion) scheduleNotice(error.message || (AdminI18n.mark("Не удалось получить ответ. Повторите загрузку перед новой попыткой.")),true);
         throw error;
     } finally {
         scheduleBusy=false;
@@ -1594,8 +1594,8 @@ function readWeekly() {
 weeklyForm.addEventListener('submit',event=>{
     event.preventDefault(); if(scheduleBusy || !weeklyForm.reportValidity()) return;
     const payload={weekly:readWeekly()};
-    openConfirmation({title:'Сохранить недельный график?',description:'Новые часы будут действовать каждую неделю. Исключения на даты сохранятся.',
-        details:[['Мастер',scheduleBarber.selectedOptions[0].textContent]],confirmLabel:'Сохранить',onConfirm:()=>saveSchedule('','PUT',payload)});
+    openConfirmation({title:(AdminI18n.mark("Сохранить недельный график?")),description:(AdminI18n.mark("Новые часы будут действовать каждую неделю. Исключения на даты сохранятся.")),
+        details:[[(AdminI18n.mark("Мастер")),scheduleBarber.selectedOptions[0].textContent]],confirmLabel:(AdminI18n.mark("Сохранить")),onConfirm:()=>saveSchedule('','PUT',payload)});
 });
 [exceptionForm,blockForm].forEach(form=>form.addEventListener('submit',event=>{
     event.preventDefault(); if(scheduleBusy || !form.reportValidity()) return;
@@ -1605,10 +1605,10 @@ weeklyForm.addEventListener('submit',event=>{
     if(isBlock) payload.reason=form.elements.reason.value.trim();
     const kind=isBlock?'blocks':'exceptions';
     const replaced=!isBlock && scheduleSnapshot.exceptions.some(item=>item.date===payload.date);
-    openConfirmation({title:isBlock?'Заблокировать время?':replaced?'Заменить исключение?':'Сохранить исключение?',
-        description:'Клиентский сайт будет учитывать это изменение при выборе времени.',
-        details:[['Мастер',scheduleBarber.selectedOptions[0].textContent],['Дата',formatDate(payload.date)],['Время',working?`${payload.start}–${payload.end}`:'Выходной']],
-        confirmLabel:'Сохранить',onConfirm:()=>saveSchedule(kind,'POST',payload)});
+    openConfirmation({title:isBlock?(AdminI18n.mark("Заблокировать время?")):replaced?(AdminI18n.mark("Заменить исключение?")):(AdminI18n.mark("Сохранить исключение?")),
+        description:(AdminI18n.mark("Клиентский сайт будет учитывать это изменение при выборе времени.")),
+        details:[[(AdminI18n.mark("Мастер")),scheduleBarber.selectedOptions[0].textContent],[(AdminI18n.mark("Дата")),formatDate(payload.date)],[(AdminI18n.mark("Время")),working?`${payload.start}–${payload.end}`:(AdminI18n.mark("Выходной"))]],
+        confirmLabel:(AdminI18n.mark("Сохранить")),onConfirm:()=>saveSchedule(kind,'POST',payload)});
 }));
 
 
@@ -1622,7 +1622,7 @@ let catalogVersion = 0;
 
 async function loadCatalog() {
     const version = ++catalogVersion;
-    catalogMessage.textContent = 'Загрузка…';
+    catalogMessage.textContent = (AdminI18n.mark("Загрузка…"));
     try {
         const [services, barbers] = await Promise.all([
             bookingJson('/api/admin/services'), bookingJson('/api/admin/barbers')
@@ -1632,7 +1632,7 @@ async function loadCatalog() {
         for (const kind of ['services', 'barbers']) {
             const list = document.querySelector(`#catalog-${kind}`);
             list.replaceChildren();
-            if (!catalogItems[kind].length) list.textContent = 'Список пока пуст.';
+            if (!catalogItems[kind].length) list.textContent = (AdminI18n.mark("Список пока пуст."));
             for (const item of catalogItems[kind]) {
                 const card = document.createElement('article');
                 card.className = 'catalog-card' + (item.active ? '' : ' catalog-inactive');
@@ -1640,13 +1640,13 @@ async function loadCatalog() {
                 title.textContent = item.name;
                 const details = document.createElement('p');
                 details.textContent = kind === 'services'
-                    ? `${formatMoney(item.price)} · ${item.duration} мин.`
-                    : `${item.position} · Опыт: ${item.experience} лет`;
+                    ? `${formatMoney(item.price)} · ${item.duration} ${AdminI18n.mark("мин.")}`
+                    : `${item.position} ${AdminI18n.mark("· Опыт:")} ${item.experience} ${AdminI18n.mark("лет")}`;
                 const status = document.createElement('span');
                 status.className = 'catalog-status';
-                status.textContent = item.active ? 'Активен' : 'Отключён';
+                status.textContent = item.active ? (AdminI18n.mark("Активен")) : (AdminI18n.mark("Отключён"));
                 const edit = document.createElement('button');
-                edit.type = 'button'; edit.textContent = 'Редактировать';
+                edit.type = 'button'; edit.textContent = (AdminI18n.mark("Редактировать"));
                 edit.addEventListener('click', () => editCatalog(kind, item));
                 card.append(title, details, status, edit);
                 list.append(card);
@@ -1663,7 +1663,7 @@ function editCatalog(kind, item = null) {
     catalogEditing = {kind, id: item?.id};
     catalogForm.reset();
     document.querySelector('#catalog-editor-title').textContent =
-        `${item ? 'Редактировать' : 'Добавить'} ${kind === 'services' ? 'услугу' : 'мастера'}`;
+        `${item ? (AdminI18n.mark("Редактировать")) : (AdminI18n.mark("Добавить"))} ${kind === 'services' ? (AdminI18n.mark("услугу")) : (AdminI18n.mark("мастера"))}`;
     document.querySelector('#catalog-form-message').textContent = '';
     for (const group of ['service', 'barber']) {
         const visible = (group === 'service') === (kind === 'services');
@@ -1682,8 +1682,8 @@ function editCatalog(kind, item = null) {
 document.querySelector('#nav-catalog').addEventListener('click', () => {
     if (scheduleBusy) return;
     if (scheduleDirty) {
-        openConfirmation({title:'Оставить несохранённый график?', description:'Изменения графика будут сброшены.',
-            confirmLabel:'Продолжить', onConfirm:async () => {
+        openConfirmation({title:(AdminI18n.mark("Оставить несохранённый график?")), description:(AdminI18n.mark("Изменения графика будут сброшены.")),
+            confirmLabel:(AdminI18n.mark("Продолжить")), onConfirm:async () => {
                 scheduleDirty=false; scheduleLoadedBarber=''; setCrmTab('catalog');
             }});
     } else setCrmTab('catalog');
@@ -1702,7 +1702,7 @@ catalogForm.addEventListener('submit', async event => {
     catalogSaving = true;
     document.querySelector('#catalog-fields').disabled = true;
     document.querySelector('#catalog-submit').disabled = true;
-    document.querySelector('#catalog-form-message').textContent = 'Сохранение…';
+    document.querySelector('#catalog-form-message').textContent = (AdminI18n.mark("Сохранение…"));
     try {
         await bookingJson(`/api/admin/${kind}${id ? '/' + id : ''}`, {
             method:id ? 'PATCH' : 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
@@ -1713,8 +1713,8 @@ catalogForm.addEventListener('submit', async event => {
         scheduleVersion++; scheduleContent.hidden=true;
         await loadCatalog();
         catalogMessage.textContent = kind === 'barbers' && !id
-            ? 'Мастер добавлен. Настройте его рабочие часы во вкладке «Расписание мастеров».'
-            : 'Сохранено. История визитов не изменилась.';
+            ? (AdminI18n.mark("Мастер добавлен. Настройте его рабочие часы во вкладке «Расписание мастеров»."))
+            : (AdminI18n.mark("Сохранено. История визитов не изменилась."));
     } catch (error) {
         const message = document.querySelector('#catalog-form-message');
         message.replaceChildren(document.createTextNode(error.message));
@@ -1773,9 +1773,9 @@ function closeCrmClient(afterClose = null) {
         if (afterClose) afterClose();
     };
     if (crmProfileDirty) {
-        openConfirmation({title: 'Закрыть без сохранения?',
-            description: 'Изменения заметки и тегов ещё не сохранены.',
-            confirmLabel: 'Не сохранять', onConfirm: async () => close()});
+        openConfirmation({title: (AdminI18n.mark("Закрыть без сохранения?")),
+            description: (AdminI18n.mark("Изменения заметки и тегов ещё не сохранены.")),
+            confirmLabel: (AdminI18n.mark("Не сохранять")), onConfirm: async () => close()});
     } else close();
 }
 
@@ -1783,7 +1783,7 @@ async function mountCrmProfile(client) {
     const epoch = ++crmEpoch;
     crmProfileDirty = crmProfileBusy = false;
     const host = document.querySelector('#crm-profile-editor');
-    host.innerHTML = '<p class="crm-message" role="status">Загружаем заметку и теги…</p>';
+    host.innerHTML = ("<p class=\"crm-message\" role=\"status\">" + AdminI18n.mark("Загружаем заметку и теги…") + "</p>");
     try {
         const data = await bookingJson(`/api/admin/clients/${encodeURIComponent(client.key)}/profile`);
         if (epoch !== crmEpoch || !clientModal.open) return;
@@ -1794,16 +1794,16 @@ async function mountCrmProfile(client) {
         let saved = JSON.stringify([client.note, tags]);
         host.innerHTML = `
             <form class="crm-editor" id="crm-profile-form">
-                <h3>О клиенте</h3>
-                <label for="crm-client-note">Постоянная заметка</label>
+                <h3>${AdminI18n.mark("О клиенте")}</h3>
+                <label for="crm-client-note">${AdminI18n.mark("Постоянная заметка")}</label>
                 <textarea id="crm-client-note" maxlength="4000" rows="4" aria-describedby="crm-note-hint"></textarea>
-                <p id="crm-note-hint" class="clients-muted">До 4 000 символов. Сохраняется для всех записей этого телефона.</p>
-                <label for="crm-tag-input">Теги клиента</label>
-                <div id="crm-tag-list" class="crm-tags" aria-label="Теги клиента"></div>
-                <div class="crm-tag-entry"><input id="crm-tag-input" maxlength="32" placeholder="Например, VIP" autocomplete="off" aria-describedby="crm-tags-hint"><button id="crm-add-tag" type="button">Добавить</button></div>
-                <p id="crm-tags-hint" class="clients-muted">Любые названия: до 12 тегов, до 32 символов каждый. Enter добавляет тег.</p>
+                <p id="crm-note-hint" class="clients-muted">${AdminI18n.mark("До 4 000 символов. Сохраняется для всех записей этого телефона.")}</p>
+                <label for="crm-tag-input">${AdminI18n.mark("Теги клиента")}</label>
+                <div id="crm-tag-list" class="crm-tags" aria-label="${AdminI18n.mark("Теги клиента")}"></div>
+                <div class="crm-tag-entry"><input id="crm-tag-input" maxlength="32" placeholder="${AdminI18n.mark("Например, VIP")}" autocomplete="off" aria-describedby="crm-tags-hint"><button id="crm-add-tag" type="button">${AdminI18n.mark("Добавить")}</button></div>
+                <p id="crm-tags-hint" class="clients-muted">${AdminI18n.mark("Любые названия: до 12 тегов, до 32 символов каждый. Enter добавляет тег.")}</p>
                 <p class="crm-message" id="crm-profile-message" role="status" aria-live="polite"></p>
-                <button type="submit" id="crm-profile-save">Сохранить заметку и теги</button>
+                <button type="submit" id="crm-profile-save">${AdminI18n.mark("Сохранить заметку и теги")}</button>
             </form>`;
         const form = host.querySelector('form');
         const note = host.querySelector('textarea');
@@ -1814,7 +1814,7 @@ async function mountCrmProfile(client) {
         note.value = client.note;
         const markDirty = () => {
             crmProfileDirty = JSON.stringify([note.value, tags]) !== saved || !!input.value;
-            message.textContent = crmProfileDirty ? 'Есть несохранённые изменения.' : '';
+            message.textContent = crmProfileDirty ? (AdminI18n.mark("Есть несохранённые изменения.")) : '';
         };
         const drawTags = () => {
             list.replaceChildren();
@@ -1823,7 +1823,7 @@ async function mountCrmProfile(client) {
                 button.type = 'button';
                 button.className = 'crm-tag';
                 button.textContent = `${tag} ×`;
-                button.setAttribute('aria-label', `Удалить тег ${tag}`);
+                button.setAttribute('aria-label', `${AdminI18n.mark("Удалить тег")} ${tag}`);
                 button.addEventListener('click', () => { tags.splice(index, 1); drawTags(); markDirty(); input.focus(); });
                 list.append(button);
             }
@@ -1831,11 +1831,11 @@ async function mountCrmProfile(client) {
         const addTag = () => {
             const tag = input.value.normalize('NFC').trim().replace(/\s+/g, ' ');
             if (!tag) { input.value = ''; markDirty(); return true; }
-            if (/[\p{Cc}\p{Cf}]/u.test(input.value)) { message.textContent = 'Тег не должен содержать управляющие символы.'; return false; }
+            if (/[\p{Cc}\p{Cf}]/u.test(input.value)) { message.textContent = (AdminI18n.mark("Тег не должен содержать управляющие символы.")); return false; }
             if (tags.some(value => value.toLocaleLowerCase() === tag.toLocaleLowerCase())) {
-                input.value = ''; markDirty(); message.textContent = 'Этот тег уже добавлен.'; return true;
+                input.value = ''; markDirty(); message.textContent = (AdminI18n.mark("Этот тег уже добавлен.")); return true;
             }
-            if (tags.length >= 12 || [...tag].length > 32) { message.textContent = 'Максимум 12 тегов, до 32 символов каждый.'; return false; }
+            if (tags.length >= 12 || [...tag].length > 32) { message.textContent = (AdminI18n.mark("Максимум 12 тегов, до 32 символов каждый.")); return false; }
             tags.push(tag); input.value = ''; drawTags(); markDirty(); input.focus(); return true;
         };
         drawTags();
@@ -1851,7 +1851,7 @@ async function mountCrmProfile(client) {
             crmProfileBusy = true;
             form.querySelectorAll('input,textarea,button').forEach(el => el.disabled = true);
             form.setAttribute('aria-busy', 'true');
-            save.textContent = 'Сохраняем…';
+            save.textContent = (AdminI18n.mark("Сохраняем…"));
             message.textContent = '';
             try {
                 const result = await bookingJson(`/api/admin/clients/${encodeURIComponent(client.key)}/profile`, {
@@ -1866,15 +1866,15 @@ async function mountCrmProfile(client) {
                 crmProfileDirty = false;
                 drawTags();
                 clientsLoaded = false;
-                message.textContent = 'Заметка и теги сохранены.';
+                message.textContent = (AdminI18n.mark("Заметка и теги сохранены."));
             } catch (error) {
-                if (epoch === crmEpoch) message.textContent = error.message || 'Не удалось сохранить. Ваши правки остались в форме.';
+                if (epoch === crmEpoch) message.textContent = error.message || (AdminI18n.mark("Не удалось сохранить. Ваши правки остались в форме."));
             } finally {
                 if (epoch === crmEpoch) {
                     crmProfileBusy = false;
                     form.querySelectorAll('input,textarea,button').forEach(el => el.disabled = false);
                     form.removeAttribute('aria-busy');
-                    save.textContent = 'Сохранить заметку и теги';
+                    save.textContent = (AdminI18n.mark("Сохранить заметку и теги"));
                 }
             }
         });
@@ -1884,7 +1884,7 @@ async function mountCrmProfile(client) {
         const message = document.createElement('p');
         message.className = 'crm-message'; message.textContent = error.message;
         const retry = document.createElement('button');
-        retry.type = 'button'; retry.className = 'crm-comment-button'; retry.textContent = 'Повторить загрузку';
+        retry.type = 'button'; retry.className = 'crm-comment-button'; retry.textContent = (AdminI18n.mark("Повторить загрузку"));
         retry.addEventListener('click', () => mountCrmProfile(client));
         host.append(message, retry);
     }
@@ -1901,7 +1901,7 @@ async function openCrmComment(id) {
     crmCommentState = null;
     crmCommentText.value = '';
     crmCommentText.disabled = crmCommentSave.disabled = true;
-    crmCommentMessage.textContent = 'Загружаем комментарий…';
+    crmCommentMessage.textContent = (AdminI18n.mark("Загружаем комментарий…"));
     crmCommentModal.showModal();
     try {
         const data = await bookingJson(`/api/admin/bookings/${id}/comment`);
@@ -1912,7 +1912,7 @@ async function openCrmComment(id) {
         crmCommentMessage.textContent = '';
         crmCommentText.focus();
     } catch (error) {
-        if (epoch === crmCommentEpoch) crmCommentMessage.textContent = `${error.message} Закройте окно и попробуйте снова.`;
+        if (epoch === crmCommentEpoch) crmCommentMessage.textContent = `${error.message} ${AdminI18n.mark("Закройте окно и попробуйте снова.")}`;
     }
 }
 
@@ -1920,14 +1920,14 @@ function closeCrmComment() {
     if (crmCommentBusy) return;
     const close = () => { crmCommentEpoch++; crmCommentModal.close(); crmCommentState = null; };
     if (crmCommentState && crmCommentText.value !== crmCommentState.comment) {
-        openConfirmation({title: 'Закрыть без сохранения?', description: 'Комментарий ещё не сохранён.',
-            confirmLabel: 'Не сохранять', onConfirm: async () => close()});
+        openConfirmation({title: (AdminI18n.mark("Закрыть без сохранения?")), description: (AdminI18n.mark("Комментарий ещё не сохранён.")),
+            confirmLabel: (AdminI18n.mark("Не сохранять")), onConfirm: async () => close()});
     } else close();
 }
 
 document.querySelector('#crm-comment-close').addEventListener('click', closeCrmComment);
 crmCommentModal.addEventListener('cancel', event => { event.preventDefault(); closeCrmComment(); });
-crmCommentText.addEventListener('input', () => { crmCommentMessage.textContent = 'Есть несохранённые изменения.'; });
+crmCommentText.addEventListener('input', () => { crmCommentMessage.textContent = (AdminI18n.mark("Есть несохранённые изменения.")); });
 document.querySelector('#crm-comment-form').addEventListener('submit', async event => {
     event.preventDefault();
     if (!crmCommentState || crmCommentBusy) return;
@@ -1935,7 +1935,7 @@ document.querySelector('#crm-comment-form').addEventListener('submit', async eve
     const {id, revision} = crmCommentState;
     crmCommentBusy = true;
     crmCommentText.disabled = crmCommentSave.disabled = true;
-    crmCommentMessage.textContent = 'Сохраняем…';
+    crmCommentMessage.textContent = (AdminI18n.mark("Сохраняем…"));
     try {
         const data = await bookingJson(`/api/admin/bookings/${id}/comment`, {
             method: 'PUT', headers: {'Content-Type': 'application/json'},
@@ -1951,11 +1951,11 @@ document.querySelector('#crm-comment-form').addEventListener('submit', async eve
             if (item) Object.assign(item, {comment: data.comment, comment_revision: data.revision});
         }
         clientModalBody.querySelectorAll('[data-comment-preview]').forEach(el => {
-            if (Number(el.dataset.commentPreview) === id) el.textContent = data.comment || 'Комментарий пока не добавлен';
+            if (Number(el.dataset.commentPreview) === id) el.textContent = data.comment || (AdminI18n.mark("Комментарий пока не добавлен"));
         });
         renderBookings();
         clientsLoaded = false;
-        crmCommentMessage.textContent = 'Комментарий сохранён.';
+        crmCommentMessage.textContent = (AdminI18n.mark("Комментарий сохранён."));
     } catch (error) {
         if (epoch === crmCommentEpoch) crmCommentMessage.textContent = error.message;
     } finally {
@@ -1996,19 +1996,19 @@ function resetAnalytics() {
 function analyticsTable(target, rows, masters) {
     const host = document.querySelector(target);
     host.replaceChildren();
-    if (!rows.length) { host.textContent = 'За этот период нет выполненных визитов.'; return; }
+    if (!rows.length) { host.textContent = (AdminI18n.mark("За этот период нет выполненных визитов.")); return; }
     const scroll = document.createElement('div'); scroll.className = 'analytics-table-scroll';
     scroll.tabIndex = 0; scroll.setAttribute('role', 'region');
-    scroll.setAttribute('aria-label', masters ? 'Результаты мастеров' : 'Популярные услуги');
+    scroll.setAttribute('aria-label', masters ? (AdminI18n.mark("Результаты мастеров")) : (AdminI18n.mark("Популярные услуги")));
     const table = document.createElement('table');
     const header = table.createTHead().insertRow();
-    const columns = masters ? ['Мастер на дату визита', 'Визиты', 'Выручка', 'Средний чек', 'Минуты'] : ['Услуга на дату визита', 'Визиты', 'Выручка'];
+    const columns = masters ? [(AdminI18n.mark("Мастер на дату визита")), (AdminI18n.mark("Визиты")), (AdminI18n.mark("Выручка")), (AdminI18n.mark("Средний чек")), (AdminI18n.mark("Минуты"))] : [(AdminI18n.mark("Услуга на дату визита")), (AdminI18n.mark("Визиты")), (AdminI18n.mark("Выручка"))];
     columns.forEach(text => { const th = document.createElement('th'); th.scope = 'col'; th.textContent = text; header.append(th); });
     const body = table.createTBody();
     rows.forEach(item => {
         const row = body.insertRow();
         const values = [item.name, item.completed, formatMoney(item.revenue)];
-        if (masters) values.push(formatMoney(item.average_check), `${item.completed_minutes}${item.missing_durations ? ' (неполные данные)' : ''}`);
+        if (masters) values.push(formatMoney(item.average_check), `${item.completed_minutes}${item.missing_durations ? (AdminI18n.mark(" (неполные данные)")) : ''}`);
         values.forEach(value => { row.insertCell().textContent = value; });
     });
     scroll.append(table); host.append(scroll);
@@ -2016,24 +2016,24 @@ function analyticsTable(target, rows, masters) {
 
 function renderAnalytics(data) {
     const {kpi, period} = data;
-    document.querySelector('#analytics-range').textContent = `${formatDate(period.start)} — ${formatDate(period.end)}. ${data.definitions.period}`;
+    document.querySelector('#analytics-range').textContent = `${formatDate(period.start)} — ${formatDate(period.end)}. ${AdminI18n.known(data.definitions.period)}`;
     const host = document.querySelector('#analytics-kpis'); host.replaceChildren();
-    const metrics = [['Выручка', formatMoney(kpi.revenue)], ['Выполненные визиты', kpi.completed], ['Средний чек', formatMoney(kpi.average_check)], ['Отменённые визиты', kpi.cancelled], ['Новые клиенты', kpi.new_clients], ['Повторные клиенты', kpi.returning_clients]];
+    const metrics = [[(AdminI18n.mark("Выручка")), formatMoney(kpi.revenue)], [(AdminI18n.mark("Выполненные визиты")), kpi.completed], [(AdminI18n.mark("Средний чек")), formatMoney(kpi.average_check)], [(AdminI18n.mark("Отменённые визиты")), kpi.cancelled], [(AdminI18n.mark("Новые клиенты")), kpi.new_clients], [(AdminI18n.mark("Повторные клиенты")), kpi.returning_clients]];
     metrics.forEach(([label, value]) => {
         const card = document.createElement('article'); card.className = 'analytics-kpi';
         const title = document.createElement('span'); title.textContent = label;
         const number = document.createElement('strong'); number.textContent = value;
         card.append(title, number); host.append(card);
     });
-    document.querySelector('#analytics-clients-note').textContent = data.definitions.clients;
-    document.querySelector('#analytics-masters-note').textContent = data.definitions.masters;
+    document.querySelector('#analytics-clients-note').textContent = AdminI18n.known(data.definitions.clients);
+    document.querySelector('#analytics-masters-note').textContent = AdminI18n.known(data.definitions.masters);
     analyticsTable('#analytics-services', data.services, false);
     analyticsTable('#analytics-barbers', data.barbers, true);
     const chart = document.querySelector('#analytics-dynamics'); chart.replaceChildren();
-    if (!kpi.completed) chart.textContent = 'Выполненных визитов пока нет. Выберите другой период или «Всё время».';
+    if (!kpi.completed) chart.textContent = (AdminI18n.mark("Выполненных визитов пока нет. Выберите другой период или «Всё время»."));
     else {
         const series = document.createElement('div'); series.className = 'analytics-series';
-        series.tabIndex = 0; series.setAttribute('role', 'region'); series.setAttribute('aria-label', 'Динамика по датам');
+        series.tabIndex = 0; series.setAttribute('role', 'region'); series.setAttribute('aria-label', (AdminI18n.mark("Динамика по датам")));
         const maxRevenue = Math.max(1, ...data.dynamics.map(item => item.revenue));
         const maxVisits = Math.max(1, ...data.dynamics.map(item => item.completed));
         data.dynamics.forEach(item => {
@@ -2045,14 +2045,14 @@ function renderAnalytics(data) {
                 const bar = document.createElement('div'); bar.className = `analytics-bar${className}`; bar.style.width = `${Math.max(0,Math.min(100,ratio*100))}%`;
                 track.append(bar); tracks.append(track);
             });
-            const value = document.createElement('span'); value.className = 'analytics-day-value'; value.textContent = `${formatMoney(item.revenue)} · ${item.completed} виз.`;
+            const value = document.createElement('span'); value.className = 'analytics-day-value'; value.textContent = `${formatMoney(item.revenue)} · ${item.completed} ${AdminI18n.mark("виз.")}`;
             row.append(date, tracks, value); series.append(row);
         });
         chart.append(series);
     }
     const warnings = [];
-    if (kpi.missing_prices) warnings.push(`Нет сохранённой цены у ${kpi.missing_prices} визитов: выручка и средний чек неполные.`);
-    if (kpi.missing_phones) warnings.push(`Без телефона: ${kpi.missing_phones} визитов; они не входят в количество клиентов.`);
+    if (kpi.missing_prices) warnings.push(`${AdminI18n.mark("Нет сохранённой цены у")} ${kpi.missing_prices} ${AdminI18n.mark("визитов: выручка и средний чек неполные.")}`);
+    if (kpi.missing_phones) warnings.push(`${AdminI18n.mark("Без телефона:")} ${kpi.missing_phones} ${AdminI18n.mark("визитов; они не входят в количество клиентов.")}`);
     document.querySelector('#analytics-warnings').textContent = warnings.join(' ');
     analyticsMessage.textContent = '';
     analyticsContent.hidden = false;
@@ -2063,7 +2063,7 @@ async function loadAnalytics() {
     analyticsController?.abort();
     analyticsController = new AbortController();
     analyticsPeriod.disabled = true;
-    analyticsMessage.textContent = analyticsContent.hidden ? 'Загружаем аналитику…' : 'Обновляем…';
+    analyticsMessage.textContent = analyticsContent.hidden ? (AdminI18n.mark("Загружаем аналитику…")) : (AdminI18n.mark("Обновляем…"));
     analyticsPanel.setAttribute('aria-busy', 'true');
     try {
         const response = await fetch(`/api/admin/analytics?period=${encodeURIComponent(analyticsPeriod.value)}`, {
@@ -2071,12 +2071,12 @@ async function loadAnalytics() {
         });
         if (requestId !== analyticsRequest) return;
         if (response.status === 401) { showLogin(); return; }
-        if (!response.ok) throw new Error('Не удалось загрузить аналитику. Выберите другой период, чтобы повторить.');
+        if (!response.ok) throw new Error((AdminI18n.mark("Не удалось загрузить аналитику. Выберите другой период, чтобы повторить.")));
         const data = await response.json();
         if (requestId !== analyticsRequest) return;
         renderAnalytics(data);
     } catch (error) {
-        if (requestId === analyticsRequest && error.name !== 'AbortError') analyticsMessage.textContent = error.message || 'Ошибка загрузки. Выберите другой период, чтобы повторить.';
+        if (requestId === analyticsRequest && error.name !== 'AbortError') analyticsMessage.textContent = error.message || (AdminI18n.mark("Ошибка загрузки. Выберите другой период, чтобы повторить."));
     } finally {
         if (requestId === analyticsRequest) {
             analyticsPeriod.disabled = false;
@@ -2134,7 +2134,7 @@ function renderReminders() {
     for (const day of ['today', 'tomorrow']) {
         const rows = remindersData.reminders.filter(row => row.booking_date === remindersData[day]);
         const button = document.querySelector(`#reminders-${day}`);
-        button.textContent = `${day === 'today' ? 'Сегодня' : 'Завтра'} · ${formatDate(remindersData[day])} · Не напоминали: ${rows.filter(row => !row.reminded_at).length} / ${rows.length}`;
+        button.textContent = `${day === 'today' ? (AdminI18n.mark("Сегодня")) : (AdminI18n.mark("Завтра"))} · ${formatDate(remindersData[day])} ${AdminI18n.mark("· Не напоминали:")} ${rows.filter(row => !row.reminded_at).length} / ${rows.length}`;
         button.setAttribute('aria-pressed', String(remindersDay === day));
     }
     const filter = document.querySelector('#reminders-filter').value;
@@ -2145,27 +2145,27 @@ function renderReminders() {
         const card = reminderElement('article', '', 'reminder-card');
         const details = reminderElement('div', '', 'reminder-details');
         details.append(reminderElement('h3', `${row.booking_time} · ${row.client_name}`));
-        details.append(reminderElement('p', `${formatDate(row.booking_date)} · ${row.service_name || 'Услуга'} · ${row.barber_name || 'Мастер'}`));
+        details.append(reminderElement('p', `${formatDate(row.booking_date)} · ${row.service_name || (AdminI18n.mark("Услуга"))} · ${row.barber_name || (AdminI18n.mark("Мастер"))}`));
         const telephone = String(row.client_phone || '').replace(/[^+0-9]/g, '');
         if (/^\+?\d{7,15}$/.test(telephone)) {
             const link = reminderElement('a', row.client_phone, 'reminder-phone');
             link.href = `tel:${telephone}`;
             details.append(link);
-        } else details.append(reminderElement('span', row.client_phone || 'Телефон не указан'));
+        } else details.append(reminderElement('span', row.client_phone || (AdminI18n.mark("Телефон не указан"))));
         const state = reminderElement('div', '', 'reminder-state');
-        state.append(reminderElement('span', row.reminded_at ? 'Напомнили' : 'Не напоминали', row.reminded_at ? 'reminder-done' : 'reminder-pending'));
+        state.append(reminderElement('span', row.reminded_at ? (AdminI18n.mark("Напомнили")) : (AdminI18n.mark("Не напоминали")), row.reminded_at ? 'reminder-done' : 'reminder-pending'));
         if (row.reminded_at) state.append(reminderElement('small', new Date(row.reminded_at).toLocaleString('ru-RU')));
-        const button = reminderElement('button', row.reminded_at ? 'Снять отметку' : 'Отметить «Напомнили»');
+        const button = reminderElement('button', row.reminded_at ? (AdminI18n.mark("Снять отметку")) : (AdminI18n.mark("Отметить «Напомнили»")));
         button.type = 'button';
         button.dataset.reminderId = row.id;
         button.disabled = remindersSaving;
-        button.setAttribute('aria-label', `${button.textContent}: ${row.client_name}, ${row.booking_time}`);
+        button.setAttribute('aria-label', `${AdminI18n.source(button)}: ${row.client_name}, ${row.booking_time}`);
         state.append(button);
         card.append(details, state);
         fragment.append(card);
     }
     if (!rows.length) fragment.append(reminderElement('p', filter === 'all'
-        ? 'На этот день нет подтверждённых записей.' : 'Нет записей с выбранным состоянием.', 'reminders-empty'));
+        ? (AdminI18n.mark("На этот день нет подтверждённых записей.")) : (AdminI18n.mark("Нет записей с выбранным состоянием.")), 'reminders-empty'));
     const focusedId = document.activeElement?.dataset?.reminderId;
     remindersList.replaceChildren(fragment);
     if (focusedId) remindersList.querySelector(`[data-reminder-id="${Number(focusedId)}"]`)?.focus();
@@ -2175,7 +2175,7 @@ async function loadReminders() {
     if (remindersPanel.hidden || remindersLoading || remindersSaving) return;
     const epoch = remindersEpoch;
     remindersLoading = true;
-    if (!remindersData) remindersMessage.textContent = 'Загружаем напоминания…';
+    if (!remindersData) remindersMessage.textContent = (AdminI18n.mark("Загружаем напоминания…"));
     try {
         const data = await bookingJson('/api/admin/reminders');
         if (epoch !== remindersEpoch) return;
@@ -2184,7 +2184,7 @@ async function loadReminders() {
         if (changed) renderReminders();
         remindersMessage.textContent = '';
     } catch (error) {
-        if (epoch === remindersEpoch) remindersMessage.textContent = `${error.message} Нажмите «Обновить список».`;
+        if (epoch === remindersEpoch) remindersMessage.textContent = `${error.message} ${AdminI18n.mark("Нажмите «Обновить список».")}`;
     } finally {
         if (epoch === remindersEpoch) remindersLoading = false;
     }
@@ -2199,7 +2199,7 @@ remindersList.addEventListener('click', async event => {
     remindersLoading = false;
     remindersSaving = true;
     remindersList.querySelectorAll('button').forEach(item => item.disabled = true);
-    remindersMessage.textContent = 'Сохраняем…';
+    remindersMessage.textContent = (AdminI18n.mark("Сохраняем…"));
     let failure = '';
     try {
         const data = await bookingJson(`/api/admin/bookings/${row.id}/reminder`, {

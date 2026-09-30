@@ -1449,3 +1449,11 @@ html{scroll-padding-top:100px}main{overflow:clip}button,input,a{touch-action:man
         transition: none !important;
     }
 }
+
+/* Compact public language controls; labels never affect form values. */
+.language-switch {display:flex;align-items:center;flex-shrink:0;gap:2px;border:1px solid #d8b681;border-radius:6px;padding:2px}
+.language-switch button {font:inherit;font-size:11px;font-weight:700;letter-spacing:0;line-height:1;min-width:28px;min-height:36px;padding:4px;background:transparent;color:inherit;border:0;border-radius:3px;cursor:pointer}
+.language-switch button[aria-pressed="true"] {background:#d8b681;color:#111}
+.language-switch button:focus-visible {outline:2px solid #d8b681;outline-offset:3px}
+@media(max-width:600px) {.language-switch {margin-left:auto} .header-inner,.header .container {gap:10px}}
+@media(min-width:901px) and (max-width:1180px){.header-inner{gap:12px}.header .nav{gap:10px}.header .nav a{font-size:14px}.header-booking{font-size:13px;padding-inline:12px}}

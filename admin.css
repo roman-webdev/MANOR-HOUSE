@@ -833,6 +833,27 @@ h1 {
 }
 
 
+/* Admin EN / RU / UA controls and long translated labels. */
+.admin-language-switch { display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
+.admin-language-switch button { min-width:42px; min-height:42px; padding:8px 10px; border:1px solid #514635; border-radius:4px; background:transparent; color:#bdb5a8; font:inherit; cursor:pointer; }
+.admin-language-switch button[aria-pressed="true"] { color:#11110f; background:#d6b277; border-color:#d6b277; }
+.admin-language-switch button:focus-visible { outline:2px solid #e7c994; outline-offset:3px; }
+.login-card > .admin-language-switch, dialog > .admin-language-switch { margin-bottom:20px; }
+.header-actions { flex-wrap:wrap; }
+.crm-nav, .booking-actions, .filters, .catalog-heading, .confirmation-actions { flex-wrap:wrap; }
+.crm-nav button, .booking-actions button, .filters button, .confirmation-actions button { white-space:normal; overflow-wrap:anywhere; }
+.booking-card > *, .client-row > *, .schedule-heading > *, .controls-heading > * { min-width:0; }
+.booking-card, .client-row, .schedule-card, .analytics-card { overflow-wrap:anywhere; }
+.analytics-table-scroll { max-width:100%; }
+@media(max-width:600px) {
+    .crm-nav button { flex:1 1 130px; overflow-wrap:normal; }
+    .admin-header .admin-container, .schedule-heading, .controls-heading { flex-wrap:wrap; gap:16px; }
+    .header-actions { width:100%; }
+    .confirmation-actions button { flex:1 1 120px; }
+    .analytics-day { grid-template-columns:70px minmax(0,1fr); }
+    .analytics-day-value { grid-column:1/-1; }
+}
+
 /* CLIENT ARCHIVE */
 .clients-view-switch { display:flex; gap:10px; margin:-8px 0 24px; }
 .clients-view-switch button { padding:10px 16px; border:1px solid #514635; background:transparent; color:#bdb5a8; font:inherit; cursor:pointer; }
