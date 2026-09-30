@@ -219,7 +219,7 @@ MANOR-HOUSE/
 ### 1. Clone the repository
 
 ``` bash
-git clone git@github.com:Romario15811/MANOR-HOUSE.git
+git clone git@github.com:roman-webdev/MANOR-HOUSE.git
 cd MANOR-HOUSE
 ```
 
